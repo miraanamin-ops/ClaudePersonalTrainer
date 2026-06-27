@@ -10,7 +10,7 @@ export default async function Home() {
   ])
 
   return (
-    <main className="min-h-screen p-6 max-w-md mx-auto">
+    <main className="min-h-screen p-6 max-w-md mx-auto pb-24">
       <h1 className="text-2xl font-bold mb-1">Personal Trainer</h1>
       <p className="text-green-400 text-sm mb-8">✓ Database connected</p>
 
