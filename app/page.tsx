@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export default async function Home() {
   const [templates, exerciseCount, mealCount] = await Promise.all([
     prisma.workoutTemplate.findMany({ orderBy: { id: 'asc' } }),
