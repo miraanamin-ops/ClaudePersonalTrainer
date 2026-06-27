@@ -9,6 +9,9 @@ export default function Nav() {
       <Link href="/body" className="flex-1 py-4 text-center text-xs font-medium text-gray-400 hover:text-white transition-colors">
         Body
       </Link>
+      <Link href="/workouts" className="flex-1 py-4 text-center text-xs font-medium text-gray-400 hover:text-white transition-colors">
+        Workouts
+      </Link>
     </nav>
   )
 }
