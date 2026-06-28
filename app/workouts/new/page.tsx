@@ -25,7 +25,7 @@ export default async function NewWorkoutPage() {
           </h2>
           <p className="text-body-sm text-secondary">
             {meso ? 'Your last training block is complete.' : 'No training block active.'}
-            {' '}Start a new block before logging a session.
+            {' '}Start a new block first.
           </p>
         </div>
         <Link
@@ -39,14 +39,30 @@ export default async function NewWorkoutPage() {
     )
   }
 
+  // Work out which template is next in rotation.
+  // Look at the last workout logged in this block and cycle to the next template.
+  const lastWorkout = await prisma.workout.findFirst({
+    where: { mesocycleId: meso.id },
+    orderBy: { date: 'desc' },
+    select: { templateId: true },
+  })
+
+  let recommendedId: number | null = null
+  if (templates.length > 0) {
+    const lastIndex = lastWorkout
+      ? templates.findIndex(t => t.id === lastWorkout.templateId)
+      : -1
+    const nextIndex = (lastIndex + 1) % templates.length
+    recommendedId = templates[nextIndex].id
+  }
+
   const isDeload = meso.currentWeek > meso.lengthWeeks
   const weekLabel = isDeload ? 'Deload week' : `Week ${meso.currentWeek} of ${meso.lengthWeeks}`
 
   return (
     <main className="min-h-screen pb-24 px-margin-mobile pt-6 max-w-md mx-auto">
       <h1 className="text-headline-lg-mobile text-on-surface mb-xs">Start Workout</h1>
-      <p className="text-label-caps text-secondary mb-xs">PICK TODAY'S SESSION</p>
-      <div className="flex items-center gap-2 mb-lg">
+      <div className="flex items-center gap-2 mb-xl">
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
           isDeload
             ? 'bg-tertiary-container/20 text-tertiary-container'
@@ -57,7 +73,7 @@ export default async function NewWorkoutPage() {
         <span className="text-body-sm text-secondary">Block {meso.blockNumber} · {weekLabel}</span>
       </div>
 
-      <TemplateSelector templates={templates} />
+      <TemplateSelector templates={templates} recommendedId={recommendedId} />
     </main>
   )
 }
