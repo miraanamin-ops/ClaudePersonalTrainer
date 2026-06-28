@@ -114,6 +114,7 @@ model Meal {
   carbsG             Float
   isAirFryer         Boolean          @default(false)
   makesLeftovers     Boolean          @default(false)
+  instructions       String?
   ingredients        MealIngredient[]
   mealPlanBreakfasts MealPlan[]       @relation("BreakfastMeal")
   mealPlanDinners    MealPlan[]       @relation("DinnerMeal")

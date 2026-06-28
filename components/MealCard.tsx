@@ -1,6 +1,7 @@
 'use client'
 
 import { useTransition } from 'react'
+import Link from 'next/link'
 import { lockMeal, swapMeal, markMealEaten, skipMeal } from '@/app/nutrition/actions'
 
 type Meal = {
@@ -13,11 +14,12 @@ type Meal = {
 
 type Props = {
   label: string
-  meal: Meal
+  meal: Meal & { id: number }
   slot: 'breakfast' | 'dinner'
   locked: boolean
   eaten: boolean
   skipped: boolean
+  recipeScale?: number
   icon?: string
 }
 
@@ -26,7 +28,7 @@ const slotIcons: Record<string, string> = {
   Dinner:    'dark_mode',
 }
 
-export default function MealCard({ label, meal, slot, locked, eaten, skipped, icon }: Props) {
+export default function MealCard({ label, meal, slot, locked, eaten, skipped, recipeScale = 1, icon }: Props) {
   const [isPending, startTransition] = useTransition()
   const mealIcon = icon ?? slotIcons[label] ?? 'restaurant'
 
@@ -92,6 +94,13 @@ export default function MealCard({ label, meal, slot, locked, eaten, skipped, ic
       <div className={`flex gap-md items-start ${skipped ? 'opacity-50' : ''}`}>
         <div className="flex-1">
           <p className={`text-body-lg text-on-surface font-semibold ${skipped ? 'line-through' : ''}`}>{meal.name}</p>
+          <Link
+            href={`/nutrition/meals/${meal.id}?scale=${recipeScale.toFixed(2)}`}
+            className="flex items-center gap-0.5 text-[10px] text-secondary hover:text-primary-container transition-colors mt-0.5 w-fit"
+          >
+            <span className="material-symbols-outlined text-[12px]">menu_book</span>
+            View recipe
+          </Link>
           <div className="flex gap-sm mt-xs flex-wrap">
             <span className="text-[10px] bg-surface-container-high px-2 py-0.5 rounded text-secondary font-label-caps">P: {meal.proteinG}g</span>
             <span className="text-[10px] bg-surface-container-high px-2 py-0.5 rounded text-secondary font-label-caps">C: {meal.carbsG}g</span>

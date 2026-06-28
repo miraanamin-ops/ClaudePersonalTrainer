@@ -152,6 +152,7 @@ async function main() {
   await addColumn(client, 'ALTER TABLE meal_plan ADD COLUMN lunch_eaten INTEGER NOT NULL DEFAULT 1', 'meal_plan.lunch_eaten')
   await addColumn(client, 'ALTER TABLE meal_plan ADD COLUMN dinner_eaten INTEGER NOT NULL DEFAULT 0', 'meal_plan.dinner_eaten')
   await addColumn(client, 'ALTER TABLE meal_plan_snacks ADD COLUMN eaten INTEGER NOT NULL DEFAULT 0', 'meal_plan_snacks.eaten')
+  await addColumn(client, 'ALTER TABLE meals ADD COLUMN instructions TEXT', 'meals.instructions')
   await addColumn(client, 'ALTER TABLE meal_plan ADD COLUMN breakfast_skipped INTEGER NOT NULL DEFAULT 0', 'meal_plan.breakfast_skipped')
   await addColumn(client, 'ALTER TABLE meal_plan ADD COLUMN lunch_skipped INTEGER NOT NULL DEFAULT 0', 'meal_plan.lunch_skipped')
   await addColumn(client, 'ALTER TABLE meal_plan ADD COLUMN dinner_skipped INTEGER NOT NULL DEFAULT 0', 'meal_plan.dinner_skipped')

@@ -52,6 +52,20 @@ export default async function NutritionPage() {
     offPlanM,
   ])
 
+  // Protein consumed from already-eaten meals + off-plan (drives recipe scale suggestions)
+  const consumedProtein =
+    (plan.breakfastEaten && !plan.breakfastSkipped ? plan.breakfastMeal.proteinG : 0) +
+    (plan.lunchEaten     && !plan.lunchSkipped     ? (lunch?.proteinG ?? 0)       : 0) +
+    plan.snacks.filter(s => s.eaten).reduce((sum, s) => sum + s.meal.proteinG, 0) +
+    offPlanM.proteinG
+
+  const remainingProtein = Math.max(0, targets.proteinG - consumedProtein)
+
+  function slotScale(mealProtein: number): number {
+    if (mealProtein <= 0) return 1
+    return Math.min(2.5, Math.max(1, remainingProtein / mealProtein))
+  }
+
   const todayLabel = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
   const hasOffPlan = offPlanMeals.length > 0
   const overKcal = total.kcal - targets.kcal
@@ -107,6 +121,7 @@ export default async function NutritionPage() {
           locked={plan.breakfastLocked}
           eaten={plan.breakfastEaten}
           skipped={plan.breakfastSkipped}
+          recipeScale={slotScale(plan.breakfastMeal.proteinG)}
         />
 
         {/* Lunch — yesterday's dinner as leftover */}
@@ -125,6 +140,13 @@ export default async function NutritionPage() {
             <div className={`flex gap-md items-start transition-opacity ${(!plan.lunchEaten || plan.lunchSkipped) ? 'opacity-50' : ''}`}>
               <div className="flex-1">
                 <p className="text-body-lg text-on-surface font-semibold">{lunch.name}</p>
+                <Link
+                  href={`/nutrition/meals/${lunch.id}?scale=${slotScale(lunch.proteinG).toFixed(2)}`}
+                  className="flex items-center gap-0.5 text-[10px] text-secondary hover:text-primary-container transition-colors mt-0.5 w-fit"
+                >
+                  <span className="material-symbols-outlined text-[12px]">menu_book</span>
+                  View recipe
+                </Link>
                 <div className="flex gap-sm mt-xs flex-wrap">
                   <span className="text-[10px] bg-surface-container-high px-2 py-0.5 rounded text-secondary">P: {lunch.proteinG}g</span>
                   <span className="text-[10px] bg-surface-container-high px-2 py-0.5 rounded text-secondary">C: {lunch.carbsG}g</span>
@@ -148,6 +170,7 @@ export default async function NutritionPage() {
           locked={plan.dinnerLocked}
           eaten={plan.dinnerEaten}
           skipped={plan.dinnerSkipped}
+          recipeScale={slotScale(plan.dinnerMeal.proteinG)}
         />
 
         {/* Snacks */}
