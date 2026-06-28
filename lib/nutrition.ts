@@ -240,12 +240,21 @@ export async function getOrCreateWeekPlan(weekOffset = 0): Promise<WeekDay[]> {
   let prevDinnerId: number | null = lastSundayPlan?.dinnerMealId ?? null
   const result: WeekDay[] = []
 
+  // Pre-seed used IDs from plans that already exist for this week so new days
+  // don't repeat meals that are already locked in earlier in the week.
+  const usedBreakfastIds = new Set(existing.map(p => p.breakfastMealId))
+  const usedDinnerIds    = new Set(existing.map(p => p.dinnerMealId))
+
   for (const day of days) {
     const key = localDateKey(day)
     let plan = byKey.get(key) as FullPlan | undefined
 
     if (!plan) {
-      const { breakfastId, dinnerId, snackIds } = await selectMeals({ yesterdaysDinnerId: prevDinnerId })
+      const { breakfastId, dinnerId, snackIds } = await selectMeals({
+        yesterdaysDinnerId:  prevDinnerId,
+        excludeBreakfastIds: new Set(usedBreakfastIds),
+        excludeDinnerIds:    new Set(usedDinnerIds),
+      })
       plan = await prisma.mealPlan.create({
         data: {
           date: day,
@@ -255,6 +264,9 @@ export async function getOrCreateWeekPlan(weekOffset = 0): Promise<WeekDay[]> {
         },
         include: planInclude,
       }) as FullPlan
+
+      usedBreakfastIds.add(breakfastId)
+      usedDinnerIds.add(dinnerId)
     }
 
     prevDinnerId = plan.dinnerMealId
