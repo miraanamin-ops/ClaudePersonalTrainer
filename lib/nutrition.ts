@@ -134,6 +134,77 @@ const planInclude = {
   snacks: { include: { meal: true } },
 } as const
 
+export function getWeekDates(): Date[] {
+  const now = new Date()
+  const dow = now.getDay() // 0=Sun … 6=Sat
+  const mon = new Date(now)
+  mon.setDate(now.getDate() - ((dow + 6) % 7))
+  mon.setHours(0, 0, 0, 0)
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(mon)
+    d.setDate(mon.getDate() + i)
+    return d
+  })
+}
+
+function localDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+type FullPlan = NonNullable<Awaited<ReturnType<typeof prisma.mealPlan.findFirst<{ include: typeof planInclude }>>>>
+
+export type WeekDay = { date: Date; isToday: boolean; plan: FullPlan }
+
+export async function getOrCreateWeekPlan(): Promise<WeekDay[]> {
+  const days = getWeekDates()
+  const todayKey = localDateKey(new Date())
+
+  const weekStart = new Date(days[0])
+  const weekEnd = new Date(days[6]); weekEnd.setHours(23, 59, 59, 999)
+
+  // Single query for all existing plans this week
+  const existing = await prisma.mealPlan.findMany({
+    where: { date: { gte: weekStart, lte: weekEnd } },
+    include: planInclude,
+    orderBy: { date: 'asc' },
+  })
+  const byKey = new Map(existing.map(p => [localDateKey(p.date), p]))
+
+  // Seed Monday's lunch carry-forward from last Sunday's dinner
+  const lastSunday = new Date(days[0]); lastSunday.setDate(lastSunday.getDate() - 1)
+  const { start: lsStart, end: lsEnd } = dateRange(lastSunday)
+  const lastSundayPlan = await prisma.mealPlan.findFirst({
+    where: { date: { gte: lsStart, lte: lsEnd } },
+    select: { dinnerMealId: true },
+  })
+
+  let prevDinnerId: number | null = lastSundayPlan?.dinnerMealId ?? null
+  const result: WeekDay[] = []
+
+  for (const day of days) {
+    const key = localDateKey(day)
+    let plan = byKey.get(key) as FullPlan | undefined
+
+    if (!plan) {
+      const { breakfastId, dinnerId, snackIds } = await selectMeals({ yesterdaysDinnerId: prevDinnerId })
+      plan = await prisma.mealPlan.create({
+        data: {
+          date: day,
+          breakfastMealId: breakfastId,
+          dinnerMealId: dinnerId,
+          snacks: { create: snackIds.map(mealId => ({ mealId })) },
+        },
+        include: planInclude,
+      }) as FullPlan
+    }
+
+    prevDinnerId = plan.dinnerMealId
+    result.push({ date: day, isToday: key === todayKey, plan })
+  }
+
+  return result
+}
+
 export async function getOrCreateTodaysPlan() {
   const { start, end } = dateRange(new Date())
   const existing = await prisma.mealPlan.findFirst({

@@ -4,6 +4,7 @@ import MealCard from '@/components/MealCard'
 import MacroSummary from '@/components/MacroSummary'
 import TargetsForm from '@/components/TargetsForm'
 import RegenerateButton from '@/components/RegenerateButton'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,6 +45,19 @@ export default async function NutritionPage() {
           <p className="text-label-caps text-secondary mt-0.5">{todayLabel}</p>
         </div>
         <RegenerateButton />
+      </div>
+
+      {/* Tabs */}
+      <div className="flex mb-lg border-b border-surface-container-highest">
+        <span className="flex-1 text-center pb-sm text-label-caps font-bold text-primary-container border-b-2 border-primary-container -mb-px">
+          TODAY
+        </span>
+        <Link
+          href="/nutrition/week"
+          className="flex-1 text-center pb-sm text-label-caps text-secondary border-b-2 border-transparent -mb-px"
+        >
+          THIS WEEK
+        </Link>
       </div>
 
       {/* Macro summary */}

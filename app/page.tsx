@@ -10,6 +10,17 @@ function todayLabel() {
   }).toUpperCase()
 }
 
+function weekRangeLabel() {
+  const now = new Date()
+  const dow = now.getDay()
+  const mon = new Date(now)
+  mon.setDate(now.getDate() - ((dow + 6) % 7))
+  const sun = new Date(mon)
+  sun.setDate(mon.getDate() + 6)
+  const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return `${fmt(mon)} – ${fmt(sun)}`
+}
+
 function greetingText() {
   const h = new Date().getHours()
   if (h < 12) return 'Good morning'
@@ -132,6 +143,26 @@ export default async function Home() {
           </Link>
         </div>
       </section>
+
+      {/* This week's meals */}
+      <Link
+        href="/nutrition/week"
+        className="block bg-surface-container border border-surface-container-highest rounded-xl p-md mb-lg active:bg-surface-container-high transition-colors"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-primary-container text-[20px]">calendar_month</span>
+            </div>
+            <div>
+              <span className="text-label-caps text-secondary block mb-0.5">FOOD</span>
+              <p className="text-headline-md text-on-surface">This week's meals</p>
+              <p className="text-body-sm text-secondary mt-0.5">{weekRangeLabel()}</p>
+            </div>
+          </div>
+          <span className="material-symbols-outlined text-secondary">chevron_right</span>
+        </div>
+      </Link>
 
       {/* Quick nav grid */}
       <div className="grid grid-cols-2 gap-md">
