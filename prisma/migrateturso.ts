@@ -122,6 +122,19 @@ async function main() {
   `)
   console.log('  · nutrition_targets table ensured')
 
+  // Phase 7: meal ingredients
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS meal_ingredients (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      mealId            INTEGER NOT NULL REFERENCES meals(id),
+      ingredientName    TEXT NOT NULL,
+      quantity          REAL NOT NULL,
+      unit              TEXT NOT NULL,
+      supermarketAisle  TEXT NOT NULL
+    )
+  `)
+  console.log('  · meal_ingredients table ensured')
+
   // Seed default targets if table is empty
   const existing = await client.execute('SELECT COUNT(*) as n FROM nutrition_targets')
   const count = Number((existing.rows[0] as unknown as { n: number }).n)
