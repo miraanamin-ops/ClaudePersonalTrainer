@@ -134,11 +134,11 @@ const planInclude = {
   snacks: { include: { meal: true } },
 } as const
 
-export function getWeekDates(): Date[] {
+export function getWeekDates(weekOffset = 0): Date[] {
   const now = new Date()
   const dow = now.getDay() // 0=Sun … 6=Sat
   const mon = new Date(now)
-  mon.setDate(now.getDate() - ((dow + 6) % 7))
+  mon.setDate(now.getDate() - ((dow + 6) % 7) + weekOffset * 7)
   mon.setHours(0, 0, 0, 0)
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(mon)
@@ -155,8 +155,8 @@ type FullPlan = NonNullable<Awaited<ReturnType<typeof prisma.mealPlan.findFirst<
 
 export type WeekDay = { date: Date; isToday: boolean; plan: FullPlan }
 
-export async function getOrCreateWeekPlan(): Promise<WeekDay[]> {
-  const days = getWeekDates()
+export async function getOrCreateWeekPlan(weekOffset = 0): Promise<WeekDay[]> {
+  const days = getWeekDates(weekOffset)
   const todayKey = localDateKey(new Date())
 
   const weekStart = new Date(days[0])
@@ -203,6 +203,78 @@ export async function getOrCreateWeekPlan(): Promise<WeekDay[]> {
   }
 
   return result
+}
+
+// ---------------------------------------------------------------------------
+// Shopping list
+// ---------------------------------------------------------------------------
+
+export type ShoppingItem = { name: string; qty: number; unit: string }
+export type ShoppingAisle = { aisle: string; items: ShoppingItem[] }
+
+export async function getShoppingList(): Promise<ShoppingAisle[]> {
+  const weekPlans = await getOrCreateWeekPlan(1) // next week
+
+  // Collect all unique meal IDs appearing in next week's plans
+  const mealIds = new Set<number>()
+  for (const { plan } of weekPlans) {
+    mealIds.add(plan.breakfastMealId)
+    mealIds.add(plan.dinnerMealId)
+    for (const snack of plan.snacks) mealIds.add(snack.mealId)
+  }
+
+  // Single query for all relevant ingredients
+  const allIngredients = await prisma.mealIngredient.findMany({
+    where: { mealId: { in: [...mealIds] } },
+  })
+  const ingByMeal = new Map<number, typeof allIngredients>()
+  for (const ing of allIngredients) {
+    const list = ingByMeal.get(ing.mealId) ?? []
+    list.push(ing)
+    ingByMeal.set(ing.mealId, list)
+  }
+
+  // Accumulate totals: key = "name|||unit"
+  const totals = new Map<string, { name: string; qty: number; unit: string; aisle: string }>()
+
+  function addIngredients(mealId: number, multiplier: number) {
+    for (const ing of ingByMeal.get(mealId) ?? []) {
+      if (ing.supermarketAisle === 'n/a') continue // water etc.
+      const key = `${ing.ingredientName}|||${ing.unit}`
+      const existing = totals.get(key)
+      if (existing) {
+        existing.qty += ing.quantity * multiplier
+      } else {
+        totals.set(key, {
+          name: ing.ingredientName,
+          qty: ing.quantity * multiplier,
+          unit: ing.unit,
+          aisle: ing.supermarketAisle,
+        })
+      }
+    }
+  }
+
+  for (const { plan } of weekPlans) {
+    addIngredients(plan.breakfastMealId, 1)  // breakfast: single serving
+    addIngredients(plan.dinnerMealId, 2)      // dinner: doubled for leftovers
+    for (const snack of plan.snacks) addIngredients(snack.mealId, 1)
+  }
+
+  // Group by aisle, sort aisles A–Z and items A–Z within each
+  const byAisle = new Map<string, ShoppingItem[]>()
+  for (const { name, qty, unit, aisle } of totals.values()) {
+    const list = byAisle.get(aisle) ?? []
+    list.push({ name, qty, unit })
+    byAisle.set(aisle, list)
+  }
+
+  return [...byAisle.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([aisle, items]) => ({
+      aisle,
+      items: items.sort((a, b) => a.name.localeCompare(b.name)),
+    }))
 }
 
 export async function getOrCreateTodaysPlan() {

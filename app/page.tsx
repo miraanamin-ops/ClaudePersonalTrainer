@@ -10,11 +10,11 @@ function todayLabel() {
   }).toUpperCase()
 }
 
-function weekRangeLabel() {
+function weekRangeLabel(weekOffset = 0) {
   const now = new Date()
   const dow = now.getDay()
   const mon = new Date(now)
-  mon.setDate(now.getDate() - ((dow + 6) % 7))
+  mon.setDate(now.getDate() - ((dow + 6) % 7) + weekOffset * 7)
   const sun = new Date(mon)
   sun.setDate(mon.getDate() + 6)
   const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
@@ -147,7 +147,7 @@ export default async function Home() {
       {/* This week's meals */}
       <Link
         href="/nutrition/week"
-        className="block bg-surface-container border border-surface-container-highest rounded-xl p-md mb-lg active:bg-surface-container-high transition-colors"
+        className="block bg-surface-container border border-surface-container-highest rounded-xl p-md mb-sm active:bg-surface-container-high transition-colors"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -158,6 +158,26 @@ export default async function Home() {
               <span className="text-label-caps text-secondary block mb-0.5">FOOD</span>
               <p className="text-headline-md text-on-surface">This week's meals</p>
               <p className="text-body-sm text-secondary mt-0.5">{weekRangeLabel()}</p>
+            </div>
+          </div>
+          <span className="material-symbols-outlined text-secondary">chevron_right</span>
+        </div>
+      </Link>
+
+      {/* Next week's shopping */}
+      <Link
+        href="/shopping"
+        className="block bg-surface-container border border-surface-container-highest rounded-xl p-md mb-lg active:bg-surface-container-high transition-colors"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-primary-container text-[20px]">shopping_cart</span>
+            </div>
+            <div>
+              <span className="text-label-caps text-secondary block mb-0.5">SHOPPING</span>
+              <p className="text-headline-md text-on-surface">Next week's list</p>
+              <p className="text-body-sm text-secondary mt-0.5">{weekRangeLabel(1)}</p>
             </div>
           </div>
           <span className="material-symbols-outlined text-secondary">chevron_right</span>
