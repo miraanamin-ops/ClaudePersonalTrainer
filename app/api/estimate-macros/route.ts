@@ -39,9 +39,12 @@ export async function POST(req: NextRequest) {
 
     const raw = message.content[0]?.type === 'text' ? message.content[0].text.trim() : ''
 
+    // Strip markdown code fences the model sometimes adds despite instructions
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+
     let parsed: unknown
     try {
-      parsed = JSON.parse(raw)
+      parsed = JSON.parse(cleaned)
     } catch {
       return NextResponse.json({ error: "Couldn't estimate — enter manually" }, { status: 422 })
     }
