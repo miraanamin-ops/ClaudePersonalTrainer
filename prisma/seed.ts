@@ -15,23 +15,25 @@ import { PrismaLibSQL } from '@prisma/adapter-libsql'
 // ---------------------------------------------------------------------------
 
 const exerciseData = [
-  // Upper body
-  { name: 'Dumbbell Chest Press',    muscleGroup: 'chest',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5 },
-  { name: 'Lat Pulldown',            muscleGroup: 'back',            repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5 },
-  { name: 'Dumbbell Row',            muscleGroup: 'back',            repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5 },
-  { name: 'Dumbbell Shoulder Press', muscleGroup: 'shoulders',       repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5 },
-  { name: 'Bicep Curl',              muscleGroup: 'biceps',          repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
-  { name: 'Tricep Pushdown',         muscleGroup: 'triceps',         repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
-  // Lower body
-  { name: 'Squat',                   muscleGroup: 'quads',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0 },
-  { name: 'Romanian Deadlift',       muscleGroup: 'hamstrings',      repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0 },
-  { name: 'Leg Press',               muscleGroup: 'quads',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0 },
-  { name: 'Hamstring Curl',          muscleGroup: 'hamstrings',      repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
-  { name: 'Leg Extension',           muscleGroup: 'quads',           repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
-  { name: 'Calf Raise',              muscleGroup: 'calves',          repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  // Upper body — compounds (priority)
+  { name: 'Dumbbell Chest Press',    muscleGroup: 'chest',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5, isPriority: true  },
+  { name: 'Lat Pulldown',            muscleGroup: 'back',            repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5, isPriority: true  },
+  { name: 'Dumbbell Row',            muscleGroup: 'back',            repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5, isPriority: true  },
+  { name: 'Dumbbell Shoulder Press', muscleGroup: 'shoulders',       repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5, isPriority: true  },
+  // Upper body — isolations
+  { name: 'Bicep Curl',              muscleGroup: 'biceps',          repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5, isPriority: false },
+  { name: 'Tricep Pushdown',         muscleGroup: 'triceps',         repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5, isPriority: false },
+  // Lower body — compounds (priority)
+  { name: 'Squat',                   muscleGroup: 'quads',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0, isPriority: true  },
+  { name: 'Romanian Deadlift',       muscleGroup: 'hamstrings',      repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0, isPriority: true  },
+  { name: 'Leg Press',               muscleGroup: 'quads',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0, isPriority: true  },
+  // Lower body — isolations
+  { name: 'Hamstring Curl',          muscleGroup: 'hamstrings',      repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5, isPriority: false },
+  { name: 'Leg Extension',           muscleGroup: 'quads',           repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5, isPriority: false },
+  { name: 'Calf Raise',              muscleGroup: 'calves',          repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5, isPriority: false },
   // Full Body B extras
-  { name: 'Deadlift',                muscleGroup: 'posterior chain', repRangeLow: 5,  repRangeHigh: 8,  incrementKg: 5.0 },
-  { name: 'Incline Dumbbell Press',  muscleGroup: 'chest',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5 },
+  { name: 'Deadlift',                muscleGroup: 'posterior chain', repRangeLow: 5,  repRangeHigh: 8,  incrementKg: 5.0, isPriority: true  },
+  { name: 'Incline Dumbbell Press',  muscleGroup: 'chest',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5, isPriority: true  },
 ]
 
 // ---------------------------------------------------------------------------

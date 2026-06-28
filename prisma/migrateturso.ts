@@ -1,0 +1,139 @@
+import * as dotenv from 'dotenv'
+import * as path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const root = path.resolve(__dirname, '..')
+dotenv.config({ path: path.join(root, '.env.local') })
+dotenv.config({ path: path.join(root, '.env') })
+
+import { createClient } from '@libsql/client'
+
+const PRIORITY_EXERCISES = [
+  'Dumbbell Chest Press',
+  'Incline Dumbbell Press',
+  'Lat Pulldown',
+  'Dumbbell Row',
+  'Dumbbell Shoulder Press',
+  'Squat',
+  'Romanian Deadlift',
+  'Leg Press',
+  'Deadlift',
+]
+
+async function addColumn(client: ReturnType<typeof createClient>, sql: string, label: string) {
+  try {
+    await client.execute(sql)
+    console.log(`  ✓ ${label}`)
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (msg.includes('duplicate column') || msg.includes('already has a column') || msg.includes('already exists')) {
+      console.log(`  · ${label} already exists`)
+    } else {
+      throw e
+    }
+  }
+}
+
+async function main() {
+  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL not set')
+
+  const client = createClient({
+    url: process.env.DATABASE_URL,
+    authToken: process.env.DATABASE_AUTH_TOKEN,
+  })
+
+  console.log('Applying schema additions...')
+
+  await addColumn(
+    client,
+    'ALTER TABLE exercises ADD COLUMN is_priority INTEGER NOT NULL DEFAULT 0',
+    'exercises.is_priority',
+  )
+  await addColumn(
+    client,
+    'ALTER TABLE mesocycles ADD COLUMN block_number INTEGER NOT NULL DEFAULT 1',
+    'mesocycles.block_number',
+  )
+  await addColumn(
+    client,
+    'ALTER TABLE mesocycles ADD COLUMN workouts_per_week INTEGER NOT NULL DEFAULT 3',
+    'mesocycles.workouts_per_week',
+  )
+
+  // Ensure readiness table exists (may not have been created if Phase 1 used local-only push)
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS readiness (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      date       DATETIME NOT NULL,
+      sleep_hours REAL NOT NULL,
+      soreness   INTEGER NOT NULL,
+      energy     INTEGER NOT NULL,
+      notes      TEXT
+    )
+  `)
+  console.log('  · readiness table ensured')
+
+  console.log('Setting isPriority on compound lifts...')
+  for (const name of PRIORITY_EXERCISES) {
+    const result = await client.execute({
+      sql: 'UPDATE exercises SET is_priority = 1 WHERE name = ?',
+      args: [name],
+    })
+    if (result.rowsAffected > 0) {
+      console.log(`  ✓ ${name}`)
+    } else {
+      console.log(`  · ${name} — not found (skip)`)
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Phase 6: nutrition
+  // -------------------------------------------------------------------------
+  await addColumn(
+    client,
+    'ALTER TABLE meal_plan ADD COLUMN breakfast_locked INTEGER NOT NULL DEFAULT 0',
+    'meal_plan.breakfast_locked',
+  )
+  await addColumn(
+    client,
+    'ALTER TABLE meal_plan ADD COLUMN dinner_locked INTEGER NOT NULL DEFAULT 0',
+    'meal_plan.dinner_locked',
+  )
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS meal_plan_snacks (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      meal_plan_id INTEGER NOT NULL REFERENCES meal_plan(id),
+      meal_id      INTEGER NOT NULL REFERENCES meals(id)
+    )
+  `)
+  console.log('  · meal_plan_snacks table ensured')
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS nutrition_targets (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      kcal       INTEGER NOT NULL,
+      protein_g  REAL NOT NULL,
+      fat_g      REAL NOT NULL,
+      carbs_g    REAL NOT NULL,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+  console.log('  · nutrition_targets table ensured')
+
+  // Seed default targets if table is empty
+  const existing = await client.execute('SELECT COUNT(*) as n FROM nutrition_targets')
+  const count = Number((existing.rows[0] as unknown as { n: number }).n)
+  if (count === 0) {
+    await client.execute('INSERT INTO nutrition_targets (kcal, protein_g, fat_g, carbs_g) VALUES (2400, 180, 70, 270)')
+    console.log('  ✓ default nutrition targets seeded')
+  } else {
+    console.log('  · nutrition targets already set')
+  }
+
+  client.close()
+  console.log('Done.')
+}
+
+main().catch(e => { console.error(e); process.exit(1) })

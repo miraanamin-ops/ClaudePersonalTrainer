@@ -6,7 +6,7 @@ import { updateBodyMetric, deleteBodyMetric } from '@/app/body/actions'
 
 export type BodyEntry = {
   id: number
-  date: string      // "YYYY-MM-DD"
+  date: string
   weightKg: number
   bodyFatPct: number | null
 }
@@ -55,25 +55,25 @@ export default function BodyEntryList({ entries }: { entries: BodyEntry[] }) {
 
   if (entries.length === 0) {
     return (
-      <p className="text-center text-gray-500 text-sm py-10">
+      <p className="text-center text-secondary text-body-sm py-10">
         No entries yet — log your first weight above.
       </p>
     )
   }
 
   return (
-    <ul className="space-y-2">
+    <div className="space-y-sm">
       {entries.map(entry => (
-        <li key={entry.id} className="bg-gray-900 rounded-xl p-4">
+        <div key={entry.id} className="bg-surface-container-low border border-surface-container-highest rounded-lg p-md">
           {editingId === entry.id ? (
-            <div className="space-y-3">
+            <div className="space-y-md">
               <input
                 type="date"
                 value={editDate}
                 onChange={e => setEditDate(e.target.value)}
-                className="w-full bg-gray-800 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full bg-surface-container-high border border-surface-container-highest rounded text-on-surface px-md py-2.5 text-body-sm focus:outline-none focus:border-primary-container transition-colors"
               />
-              <div className="flex gap-2">
+              <div className="flex gap-md">
                 <input
                   type="number"
                   value={editWeight}
@@ -81,7 +81,7 @@ export default function BodyEntryList({ entries }: { entries: BodyEntry[] }) {
                   step="0.1"
                   placeholder="kg"
                   inputMode="decimal"
-                  className="flex-1 bg-gray-800 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="flex-1 bg-surface-container-high border border-surface-container-highest rounded text-on-surface px-md py-2.5 text-body-sm focus:outline-none focus:border-primary-container transition-colors"
                 />
                 <input
                   type="number"
@@ -90,53 +90,53 @@ export default function BodyEntryList({ entries }: { entries: BodyEntry[] }) {
                   step="0.1"
                   placeholder="BF %"
                   inputMode="decimal"
-                  className="flex-1 bg-gray-800 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="flex-1 bg-surface-container-high border border-surface-container-highest rounded text-on-surface px-md py-2.5 text-body-sm focus:outline-none focus:border-primary-container transition-colors"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-md">
                 <button
                   onClick={saveEdit}
                   disabled={isPending}
-                  className="flex-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded-lg py-2.5 text-sm font-semibold transition-colors"
+                  className="flex-1 bg-primary-container text-on-primary-container font-bold rounded py-2.5 text-label-caps disabled:opacity-50 active:scale-95 transition-all"
                 >
                   {isPending ? 'Saving…' : 'Save'}
                 </button>
                 <button
                   onClick={() => setEditingId(null)}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 rounded-lg py-2.5 text-sm transition-colors"
+                  className="flex-1 bg-surface-container-high text-secondary rounded py-2.5 text-label-caps hover:text-on-surface transition-colors"
                 >
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-xs text-gray-500 mb-0.5">{fmtDate(entry.date)}</p>
-                <p className="text-xl font-semibold leading-tight">{entry.weightKg} kg</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-body-lg text-on-surface">{fmtDate(entry.date)}</p>
+                <p className="text-headline-md text-primary-container mt-0.5">{entry.weightKg} kg</p>
                 {entry.bodyFatPct !== null && (
-                  <p className="text-sm text-orange-400 mt-0.5">{entry.bodyFatPct}% body fat</p>
+                  <p className="text-label-caps text-secondary">{entry.bodyFatPct}% BF</p>
                 )}
               </div>
-              <div className="flex gap-2 shrink-0">
+              <div className="flex gap-sm">
                 <button
                   onClick={() => startEdit(entry)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors"
+                  className="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-secondary hover:text-primary-container transition-colors"
                 >
-                  Edit
+                  <span className="material-symbols-outlined text-[18px]">edit</span>
                 </button>
                 <button
                   onClick={() => handleDelete(entry.id)}
                   disabled={isPending}
-                  className="px-4 py-2 bg-red-950 hover:bg-red-900 disabled:opacity-50 rounded-lg text-sm text-red-400 transition-colors"
+                  className="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-secondary hover:text-error transition-colors disabled:opacity-40"
                 >
-                  Delete
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
                 </button>
               </div>
             </div>
           )}
-        </li>
+        </div>
       ))}
-    </ul>
+    </div>
   )
 }

@@ -24,6 +24,7 @@ model Exercise {
   repRangeLow       Int
   repRangeHigh      Int
   incrementKg       Float
+  isPriority        Boolean            @default(false) @map("is_priority")
   templateExercises TemplateExercise[]
   workoutSets       WorkoutSet[]
 
@@ -53,11 +54,13 @@ model TemplateExercise {
 }
 
 model Mesocycle {
-  id          Int       @id @default(autoincrement())
-  startDate   DateTime
-  lengthWeeks Int
-  currentWeek Int       @default(1)
-  workouts    Workout[]
+  id              Int       @id @default(autoincrement())
+  startDate       DateTime
+  lengthWeeks     Int
+  currentWeek     Int       @default(1)
+  blockNumber     Int       @default(1)  @map("block_number")
+  workoutsPerWeek Int       @default(3)  @map("workouts_per_week")
+  workouts        Workout[]
 
   @@map("mesocycles")
 }
@@ -93,7 +96,7 @@ model WorkoutSet {
 model Readiness {
   id         Int      @id @default(autoincrement())
   date       DateTime
-  sleepHours Float
+  sleepHours Float    @map("sleep_hours")
   soreness   Int
   energy     Int
   notes      String?
@@ -114,6 +117,7 @@ model Meal {
   ingredients        MealIngredient[]
   mealPlanBreakfasts MealPlan[]       @relation("BreakfastMeal")
   mealPlanDinners    MealPlan[]       @relation("DinnerMeal")
+  mealPlanSnacks     MealPlanSnack[]
 
   @@map("meals")
 }
@@ -131,12 +135,36 @@ model MealIngredient {
 }
 
 model MealPlan {
-  id              Int      @id @default(autoincrement())
+  id              Int             @id @default(autoincrement())
   date            DateTime
   breakfastMealId Int
   dinnerMealId    Int
-  breakfastMeal   Meal     @relation("BreakfastMeal", fields: [breakfastMealId], references: [id])
-  dinnerMeal      Meal     @relation("DinnerMeal", fields: [dinnerMealId], references: [id])
+  breakfastLocked Boolean         @default(false) @map("breakfast_locked")
+  dinnerLocked    Boolean         @default(false) @map("dinner_locked")
+  breakfastMeal   Meal            @relation("BreakfastMeal", fields: [breakfastMealId], references: [id])
+  dinnerMeal      Meal            @relation("DinnerMeal", fields: [dinnerMealId], references: [id])
+  snacks          MealPlanSnack[]
 
   @@map("meal_plan")
+}
+
+model MealPlanSnack {
+  id         Int      @id @default(autoincrement())
+  mealPlanId Int      @map("meal_plan_id")
+  mealId     Int      @map("meal_id")
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id])
+  meal       Meal     @relation(fields: [mealId], references: [id])
+
+  @@map("meal_plan_snacks")
+}
+
+model NutritionTarget {
+  id        Int      @id @default(autoincrement())
+  kcal      Int
+  proteinG  Float    @map("protein_g")
+  fatG      Float    @map("fat_g")
+  carbsG    Float    @map("carbs_g")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("nutrition_targets")
 }

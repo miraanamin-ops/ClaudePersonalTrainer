@@ -4,12 +4,16 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
 export async function createWorkout(templateId: number): Promise<number> {
+  const activeMeso = await prisma.mesocycle.findFirst({
+    orderBy: { startDate: 'desc' },
+  })
+
   const workout = await prisma.workout.create({
     data: {
       date: new Date(),
       templateId,
-      mesocycleId: null,
-      weekInBlock: null,
+      mesocycleId: activeMeso?.id ?? null,
+      weekInBlock: activeMeso?.currentWeek ?? null,
       notes: null,
     },
   })

@@ -15,20 +15,64 @@ export default async function BodyPage() {
     bodyFatPct: e.bodyFatPct,
   }))
 
-  // Chart wants oldest-first
   const chartData = [...entries].reverse()
+  const latest = entries[0]
+  const prev = entries[1]
+  const weekDelta = latest && prev
+    ? (latest.weightKg - prev.weightKg).toFixed(1)
+    : null
 
   return (
-    <main className="min-h-screen p-4 max-w-md mx-auto pb-24">
-      <h1 className="text-2xl font-bold mb-6">Body Tracking</h1>
+    <main className="min-h-screen pb-24 px-margin-mobile pt-6 max-w-md mx-auto">
+      <h1 className="text-headline-lg-mobile text-on-surface mb-lg">Body Tracking</h1>
 
-      {entries.length >= 2 && <WeightChart data={chartData} />}
+      {/* Hero stats */}
+      {latest && (
+        <div className="grid grid-cols-2 gap-md mb-xl">
+          <div className="bg-surface-container border border-surface-container-highest rounded-xl p-md flex flex-col justify-between aspect-square">
+            <div>
+              <span className="text-label-caps text-secondary block mb-xs">CURRENT WEIGHT</span>
+              <div className="flex items-baseline gap-base">
+                <span className="text-display-stat text-primary-container">{latest.weightKg}</span>
+                <span className="text-label-caps text-secondary">KG</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-base text-primary-container">
+              <span className="material-symbols-outlined text-[16px]">
+                {weekDelta && parseFloat(weekDelta) < 0 ? 'trending_down' : 'trending_up'}
+              </span>
+              <span className="text-label-caps">
+                {weekDelta ? `${weekDelta > '0' ? '+' : ''}${weekDelta} kg` : 'First entry'}
+              </span>
+            </div>
+          </div>
 
+          {latest.bodyFatPct !== null && (
+            <div className="bg-surface-container border border-surface-container-highest rounded-xl p-md flex flex-col justify-between aspect-square">
+              <div>
+                <span className="text-label-caps text-secondary block mb-xs">BODY FAT</span>
+                <div className="flex items-baseline gap-base">
+                  <span className="text-display-stat text-primary-container">{latest.bodyFatPct}</span>
+                  <span className="text-label-caps text-secondary">%</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-base text-secondary">
+                <span className="material-symbols-outlined text-[16px]">remove</span>
+                <span className="text-label-caps">Tracking</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Chart */}
+      {chartData.length >= 2 && <WeightChart data={chartData} />}
+
+      {/* Log form */}
       <BodyLogForm />
 
-      <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400 mb-3">
-        History
-      </h2>
+      {/* History */}
+      <h2 className="text-headline-md text-on-surface mb-md">History</h2>
       <BodyEntryList entries={entries} />
     </main>
   )

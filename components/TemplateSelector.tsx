@@ -18,20 +18,31 @@ export default function TemplateSelector({ templates }: { templates: Template[] 
   }
 
   return (
-    <ul className="space-y-3">
+    <ul className="space-y-sm">
       {templates.map(t => (
         <li key={t.id}>
           <button
             onClick={() => pick(t.id)}
             disabled={isPending}
-            className="w-full text-left bg-gray-900 hover:bg-gray-800 disabled:opacity-50 rounded-xl px-5 py-5 transition-colors"
+            className="w-full text-left bg-surface-container border border-surface-container-highest rounded-xl px-md py-md active:bg-surface-container-high disabled:opacity-50 transition-colors"
           >
-            <span className="text-lg font-semibold">{t.name}</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-primary-container text-[20px]">fitness_center</span>
+                </div>
+                <span className="text-headline-md text-on-surface">{t.name}</span>
+              </div>
+              <span className="material-symbols-outlined text-secondary">chevron_right</span>
+            </div>
           </button>
         </li>
       ))}
       {isPending && (
-        <p className="text-center text-gray-500 text-sm pt-2">Starting workout…</p>
+        <div className="flex items-center justify-center gap-2 py-md text-secondary">
+          <span className="material-symbols-outlined animate-spin text-primary-container">refresh</span>
+          <span className="text-body-sm">Starting workout…</span>
+        </div>
       )}
     </ul>
   )

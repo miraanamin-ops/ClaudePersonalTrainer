@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { getWorkoutPrescriptions } from '@/lib/prescriptions'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import WorkoutExercise from '@/components/WorkoutExercise'
@@ -6,11 +7,7 @@ import WorkoutExercise from '@/components/WorkoutExercise'
 export const dynamic = 'force-dynamic'
 
 function fmtDate(date: Date) {
-  return date.toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  })
+  return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
 type Props = { params: Promise<{ id: string }> }
@@ -20,40 +17,68 @@ export default async function WorkoutPage({ params }: Props) {
   const workoutId = parseInt(id)
   if (isNaN(workoutId)) notFound()
 
-  const workout = await prisma.workout.findUnique({
-    where: { id: workoutId },
-    include: {
-      template: {
-        include: {
-          templateExercises: {
-            orderBy: { order: 'asc' },
-            include: { exercise: true },
+  const [workout, prescriptions] = await Promise.all([
+    prisma.workout.findUnique({
+      where: { id: workoutId },
+      include: {
+        template: {
+          include: {
+            templateExercises: {
+              orderBy: { order: 'asc' },
+              include: { exercise: true },
+            },
           },
         },
+        workoutSets: { orderBy: { setNumber: 'asc' } },
       },
-      workoutSets: { orderBy: { setNumber: 'asc' } },
-    },
-  })
+    }),
+    getWorkoutPrescriptions(workoutId),
+  ])
 
   if (!workout) notFound()
 
+  const totalExercises = workout.template.templateExercises.length
+  const completedExercises = workout.template.templateExercises.filter(te => {
+    const targetSets = prescriptions.prescriptions.get(te.exerciseId)?.targetSets ?? te.targetSets
+    return workout.workoutSets.filter(s => s.exerciseId === te.exerciseId).length >= targetSets
+  }).length
+
   return (
-    <main className="min-h-screen p-4 max-w-md mx-auto pb-24">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-xl font-bold">{workout.template.name}</h1>
-        <Link
-          href="/workouts"
-          className="text-sm text-green-400 hover:text-green-300 font-medium transition-colors"
-        >
-          Done
-        </Link>
+    <main className="min-h-screen pb-24 max-w-md mx-auto">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 bg-surface border-b border-surface-container-highest">
+        <div className="flex items-center justify-between px-margin-mobile h-16">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-headline-md text-on-surface truncate">{workout.template.name}</h1>
+            <p className="text-[10px] text-secondary">{fmtDate(workout.date)}</p>
+          </div>
+          <Link
+            href="/workouts"
+            className="ml-4 h-10 px-md bg-primary-container text-on-primary-container font-bold rounded-lg flex items-center text-label-caps active:scale-95 transition-all shrink-0"
+          >
+            DONE
+          </Link>
+        </div>
+
+        {/* Progress bar */}
+        <div className="h-0.5 bg-surface-container-high mx-margin-mobile mb-0">
+          <div
+            className="h-full bg-primary-container transition-all duration-500"
+            style={{ width: totalExercises > 0 ? `${(completedExercises / totalExercises) * 100}%` : '0%' }}
+          />
+        </div>
+        <div className="flex justify-between px-margin-mobile py-xs">
+          <span className="text-label-caps text-secondary">{completedExercises}/{totalExercises} exercises</span>
+          {completedExercises === totalExercises && totalExercises > 0 && (
+            <span className="text-label-caps text-primary-container">Complete!</span>
+          )}
+        </div>
       </div>
-      <p className="text-sm text-gray-500 mb-6">{fmtDate(workout.date)}</p>
 
       {/* Exercises */}
-      <div className="space-y-4">
+      <div className="space-y-md px-margin-mobile pt-md">
         {workout.template.templateExercises.map(te => {
+          const prescription = prescriptions.prescriptions.get(te.exerciseId) ?? null
           const sets = workout.workoutSets
             .filter(s => s.exerciseId === te.exerciseId)
             .map(s => ({
@@ -75,7 +100,8 @@ export default async function WorkoutPage({ params }: Props) {
                 repRangeLow: te.exercise.repRangeLow,
                 repRangeHigh: te.exercise.repRangeHigh,
               }}
-              targetSets={te.targetSets}
+              targetSets={prescription?.targetSets ?? te.targetSets}
+              prescription={prescription}
               loggedSets={sets}
             />
           )

@@ -20,11 +20,9 @@ export default function BodyLogForm() {
     const weightKg = parseFloat(fd.get('weightKg') as string)
     const bfRaw = fd.get('bodyFatPct') as string
     const bodyFatPct = bfRaw ? parseFloat(bfRaw) : null
-
     startTransition(async () => {
       await createBodyMetric({ date: fd.get('date') as string, weightKg, bodyFatPct })
       formRef.current?.reset()
-      // restore today's date after reset
       const dateInput = formRef.current?.querySelector<HTMLInputElement>('[name="date"]')
       if (dateInput) dateInput.value = todayStr()
       router.refresh()
@@ -32,41 +30,43 @@ export default function BodyLogForm() {
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="bg-gray-900 rounded-xl p-4 mb-6 space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-400">Log entry</h2>
+    <form ref={formRef} onSubmit={handleSubmit} className="bg-surface-container border border-surface-container-highest rounded-xl p-md space-y-md mb-xl">
+      <h2 className="text-label-caps text-secondary uppercase">New Measurement</h2>
 
       <input
         type="date"
         name="date"
         defaultValue={todayStr()}
         required
-        className="w-full bg-gray-800 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+        className="w-full bg-surface-container-high border border-surface-container-highest rounded-lg px-md py-3 text-body-sm text-on-surface focus:outline-none focus:border-primary-container transition-colors"
       />
 
-      <div className="flex gap-3">
-        <div className="flex-1">
+      <div className="grid grid-cols-2 gap-md">
+        <div className="space-y-xs">
+          <label className="text-label-caps text-secondary">WEIGHT (KG)</label>
           <input
             type="number"
             name="weightKg"
             step="0.1"
             min="20"
             max="300"
-            placeholder="Weight (kg)"
+            placeholder="00.0"
             required
             inputMode="decimal"
-            className="w-full bg-gray-800 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full bg-surface-container-high border border-surface-container-highest rounded-lg px-md py-3 text-body-sm text-on-surface focus:outline-none focus:border-primary-container transition-colors"
           />
         </div>
-        <div className="flex-1">
+        <div className="space-y-xs">
+          <label className="text-label-caps text-secondary">BODY FAT (%)</label>
           <input
             type="number"
             name="bodyFatPct"
             step="0.1"
             min="1"
             max="60"
-            placeholder="Body fat % (opt.)"
+            placeholder="00.0"
             inputMode="decimal"
-            className="w-full bg-gray-800 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full bg-surface-container-high border border-surface-container-highest rounded-lg px-md py-3 text-body-sm text-on-surface focus:outline-none focus:border-primary-container transition-colors"
           />
         </div>
       </div>
@@ -74,9 +74,10 @@ export default function BodyLogForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded-lg py-3 text-sm font-semibold transition-colors"
+        className="w-full bg-primary-container text-on-primary-container font-bold py-md rounded-lg flex justify-center items-center gap-sm active:scale-95 transition-all disabled:opacity-50"
       >
-        {isPending ? 'Saving…' : 'Save'}
+        <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>add</span>
+        <span className="text-label-caps">{isPending ? 'SAVING…' : 'LOG MEASUREMENT'}</span>
       </button>
     </form>
   )
