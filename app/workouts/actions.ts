@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 
 export async function createWorkout(templateId: number): Promise<number> {
   const activeMeso = await prisma.mesocycle.findFirst({
@@ -37,4 +38,10 @@ export async function addSet(
 export async function deleteSet(setId: number, workoutId: number) {
   await prisma.workoutSet.delete({ where: { id: setId } })
   revalidatePath(`/workouts/${workoutId}`)
+}
+
+export async function deleteWorkout(workoutId: number) {
+  await prisma.workoutSet.deleteMany({ where: { workoutId } })
+  await prisma.workout.delete({ where: { id: workoutId } })
+  redirect('/workouts')
 }

@@ -3,6 +3,7 @@ import { getWorkoutPrescriptions } from '@/lib/prescriptions'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import WorkoutExercise from '@/components/WorkoutExercise'
+import DeleteWorkoutButton from '@/components/DeleteWorkoutButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,12 +53,15 @@ export default async function WorkoutPage({ params }: Props) {
             <h1 className="text-headline-md text-on-surface truncate">{workout.template.name}</h1>
             <p className="text-[10px] text-secondary">{fmtDate(workout.date)}</p>
           </div>
-          <Link
-            href="/workouts"
-            className="ml-4 h-10 px-md bg-primary-container text-on-primary-container font-bold rounded-lg flex items-center text-label-caps active:scale-95 transition-all shrink-0"
-          >
-            DONE
-          </Link>
+          <div className="flex items-center gap-md ml-4 shrink-0">
+            <DeleteWorkoutButton workoutId={workout.id} variant="cancel" />
+            <Link
+              href="/workouts"
+              className="h-10 px-md bg-primary-container text-on-primary-container font-bold rounded-lg flex items-center text-label-caps active:scale-95 transition-all"
+            >
+              DONE
+            </Link>
+          </div>
         </div>
 
         {/* Progress bar */}

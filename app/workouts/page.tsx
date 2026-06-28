@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import DeleteWorkoutButton from '@/components/DeleteWorkoutButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,17 +43,17 @@ export default async function WorkoutsPage() {
             const setCount = w.workoutSets.length
             const exerciseCount = new Set(w.workoutSets.map(s => s.exerciseId)).size
             return (
-              <li key={w.id}>
+              <li key={w.id} className="flex items-center gap-sm">
                 <Link
                   href={`/workouts/${w.id}`}
-                  className="flex items-center justify-between bg-surface-container border border-surface-container-highest rounded-xl p-md active:bg-surface-container-high transition-colors"
+                  className="flex-1 flex items-center justify-between bg-surface-container border border-surface-container-highest rounded-xl p-md active:bg-surface-container-high transition-colors min-w-0"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
                       <span className="material-symbols-outlined text-primary-container text-[20px]">fitness_center</span>
                     </div>
-                    <div>
-                      <p className="text-body-lg font-semibold text-on-surface">{w.template.name}</p>
+                    <div className="min-w-0">
+                      <p className="text-body-lg font-semibold text-on-surface truncate">{w.template.name}</p>
                       <p className="text-body-sm text-secondary mt-0.5">{fmtDate(w.date)}</p>
                     </div>
                   </div>
@@ -63,6 +64,7 @@ export default async function WorkoutsPage() {
                     </p>
                   </div>
                 </Link>
+                <DeleteWorkoutButton workoutId={w.id} variant="delete" />
               </li>
             )
           })}
