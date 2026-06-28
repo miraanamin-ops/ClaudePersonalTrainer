@@ -34,8 +34,8 @@ export default async function NutritionPage() {
     orderBy: { id: 'asc' },
   })
 
-  // Lunch macros are only counted if plan.lunchEaten is true
-  const lunchM = (lunch && plan.lunchEaten)
+  // Lunch macros count only if eaten and not skipped
+  const lunchM = (lunch && plan.lunchEaten && !plan.lunchSkipped)
     ? { kcal: lunch.kcal, proteinG: lunch.proteinG, fatG: lunch.fatG, carbsG: lunch.carbsG }
     : { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 }
 
@@ -45,9 +45,9 @@ export default async function NutritionPage() {
   )
 
   const total = sumMacros([
-    { kcal: plan.breakfastMeal.kcal, proteinG: plan.breakfastMeal.proteinG, fatG: plan.breakfastMeal.fatG, carbsG: plan.breakfastMeal.carbsG },
+    plan.breakfastSkipped ? { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 } : { kcal: plan.breakfastMeal.kcal, proteinG: plan.breakfastMeal.proteinG, fatG: plan.breakfastMeal.fatG, carbsG: plan.breakfastMeal.carbsG },
     lunchM,
-    { kcal: plan.dinnerMeal.kcal, proteinG: plan.dinnerMeal.proteinG, fatG: plan.dinnerMeal.fatG, carbsG: plan.dinnerMeal.carbsG },
+    plan.dinnerSkipped    ? { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 } : { kcal: plan.dinnerMeal.kcal,    proteinG: plan.dinnerMeal.proteinG,    fatG: plan.dinnerMeal.fatG,    carbsG: plan.dinnerMeal.carbsG    },
     ...plan.snacks.map(s => ({ kcal: s.meal.kcal, proteinG: s.meal.proteinG, fatG: s.meal.fatG, carbsG: s.meal.carbsG })),
     offPlanM,
   ])
@@ -106,6 +106,7 @@ export default async function NutritionPage() {
           slot="breakfast"
           locked={plan.breakfastLocked}
           eaten={plan.breakfastEaten}
+          skipped={plan.breakfastSkipped}
         />
 
         {/* Lunch — yesterday's dinner as leftover */}
@@ -117,11 +118,11 @@ export default async function NutritionPage() {
               yesterday&apos;s dinner
             </span>
             {lunch && (
-              <LunchEatenToggle eaten={plan.lunchEaten} />
+              <LunchEatenToggle eaten={plan.lunchEaten} skipped={plan.lunchSkipped} />
             )}
           </div>
           {lunch ? (
-            <div className={`flex gap-md items-start transition-opacity ${!plan.lunchEaten ? 'opacity-50' : ''}`}>
+            <div className={`flex gap-md items-start transition-opacity ${(!plan.lunchEaten || plan.lunchSkipped) ? 'opacity-50' : ''}`}>
               <div className="flex-1">
                 <p className="text-body-lg text-on-surface font-semibold">{lunch.name}</p>
                 <div className="flex gap-sm mt-xs flex-wrap">
@@ -146,6 +147,7 @@ export default async function NutritionPage() {
           slot="dinner"
           locked={plan.dinnerLocked}
           eaten={plan.dinnerEaten}
+          skipped={plan.dinnerSkipped}
         />
 
         {/* Snacks */}

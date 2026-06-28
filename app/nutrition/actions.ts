@@ -125,6 +125,26 @@ export async function saveTargets(kcal: number, proteinG: number, fatG: number, 
   await generatePlan()
 }
 
+export async function skipMeal(slot: 'breakfast' | 'lunch' | 'dinner', skipped: boolean) {
+  const { start, end } = dateRange(new Date())
+  const existing = await prisma.mealPlan.findFirst({ where: { date: { gte: start, lte: end } } })
+  if (!existing) return
+
+  const data =
+    slot === 'breakfast' ? { breakfastSkipped: skipped, breakfastEaten: skipped ? false : undefined } :
+    slot === 'lunch'     ? { lunchSkipped: skipped,     lunchEaten:     skipped ? false : undefined } :
+                           { dinnerSkipped: skipped,    dinnerEaten:    skipped ? false : undefined }
+
+  await prisma.mealPlan.update({ where: { id: existing.id }, data })
+  revalidatePath('/nutrition')
+}
+
+export async function deleteOffPlanMeal(id: number) {
+  await prisma.offPlanMeal.delete({ where: { id } })
+  await refitDay(new Date())
+  revalidatePath('/nutrition')
+}
+
 export async function markMealEaten(slot: 'breakfast' | 'lunch' | 'dinner', eaten: boolean) {
   const { start, end } = dateRange(new Date())
   const existing = await prisma.mealPlan.findFirst({ where: { date: { gte: start, lte: end } } })

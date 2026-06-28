@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { logOffPlanMeal } from '@/app/nutrition/actions'
+import { logOffPlanMeal, deleteOffPlanMeal } from '@/app/nutrition/actions'
 
 type OffPlanMealEntry = {
   id: number
@@ -28,6 +28,11 @@ export default function OffPlanLogger({ existing }: Props) {
   const [fatG, setFatG] = useState('')
   const [carbsG, setCarbsG] = useState('')
   const [isPending, startTransition] = useTransition()
+  const [isDeleting, startDelete] = useTransition()
+
+  function handleDelete(id: number) {
+    startDelete(() => deleteOffPlanMeal(id))
+  }
 
   async function handleEstimate() {
     setStep('estimating')
@@ -98,14 +103,24 @@ export default function OffPlanLogger({ existing }: Props) {
       {existing.length > 0 && (
         <div className="space-y-sm mb-md">
           {existing.map(m => (
-            <div key={m.id} className="flex items-center justify-between bg-surface-container-high p-sm rounded-lg">
+            <div key={m.id} className={`flex items-center justify-between bg-surface-container-high p-sm rounded-lg transition-opacity ${isDeleting ? 'opacity-50' : ''}`}>
               <div className="flex-1 min-w-0">
                 <p className="text-body-sm text-on-surface font-semibold truncate">{m.description}</p>
                 <p className="text-[10px] text-secondary">P: {m.proteinG}g | C: {m.carbsG}g | F: {m.fatG}g</p>
               </div>
-              <div className="text-right shrink-0 ml-sm">
-                <p className="text-headline-md text-primary-container">{m.kcal}</p>
-                <p className="text-[10px] text-secondary">KCAL</p>
+              <div className="flex items-center gap-sm ml-sm">
+                <div className="text-right shrink-0">
+                  <p className="text-headline-md text-primary-container">{m.kcal}</p>
+                  <p className="text-[10px] text-secondary">KCAL</p>
+                </div>
+                <button
+                  onClick={() => handleDelete(m.id)}
+                  disabled={isDeleting}
+                  title="Delete entry"
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-secondary hover:text-error transition-colors disabled:opacity-30"
+                >
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                </button>
               </div>
             </div>
           ))}
