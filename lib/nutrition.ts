@@ -62,6 +62,7 @@ export async function selectMeals(opts: {
   excludeBreakfastIds?: Set<number>
   excludeDinnerIds?: Set<number>
   yesterdaysDinnerId?: number | null
+  extraConsumed?: MacroTotals
 }): Promise<{ breakfastId: number; dinnerId: number; snackIds: number[] }> {
   const { fixedBreakfastId, fixedDinnerId, yesterdaysDinnerId } = opts
   const excludeB = opts.excludeBreakfastIds ?? new Set<number>()
@@ -78,6 +79,10 @@ export async function selectMeals(opts: {
   const lunchMacros = yesterdaysDinnerId
     ? fromMeal(allDinners.find(d => d.id === yesterdaysDinnerId) ?? ZERO as never)
     : ZERO
+
+  // baseConsumed = lunch carry-forward + off-plan meals + any already-eaten snacks
+  // (breakfast/dinner macros flow through the combo loop via bestB/bestD, not here)
+  const baseConsumed = add(lunchMacros, opts.extraConsumed ?? ZERO)
 
   // Build candidate lists
   const bPool = fixedBreakfastId != null
@@ -99,14 +104,14 @@ export async function selectMeals(opts: {
 
   for (const b of bFinal) {
     for (const d of dFinal) {
-      const total = add(add(fromMeal(b), fromMeal(d)), lunchMacros)
+      const total = add(add(fromMeal(b), fromMeal(d)), baseConsumed)
       const s = comboScore(total, targets)
       if (s > bestScore) { bestScore = s; bestB = b; bestD = d }
     }
   }
 
   // Top up protein with snacks, highest protein-per-calorie first, max 2
-  const base = add(add(fromMeal(bestB), fromMeal(bestD)), lunchMacros)
+  const base = add(add(fromMeal(bestB), fromMeal(bestD)), baseConsumed)
   const snackIds: number[] = []
 
   if (base.proteinG < targets.proteinG) {
@@ -126,6 +131,60 @@ export async function selectMeals(opts: {
   }
 
   return { breakfastId: bestB.id, dinnerId: bestD.id, snackIds }
+}
+
+// Re-fits today's (or any day's) plan around fixed meals (eaten/locked) and
+// off-plan meals already logged.  Called after every mutation that changes the
+// consumed-vs-planned balance.
+export async function refitDay(date: Date) {
+  const { start, end } = dateRange(date)
+  const plan = await prisma.mealPlan.findFirst({
+    where: { date: { gte: start, lte: end } },
+    include: planInclude,
+  })
+  if (!plan) return
+
+  // Yesterday's dinner for the lunch carry-forward (only if lunchEaten)
+  const yDay = new Date(date)
+  yDay.setDate(yDay.getDate() - 1)
+  const { start: yS, end: yE } = dateRange(yDay)
+  const yPlan = await prisma.mealPlan.findFirst({
+    where: { date: { gte: yS, lte: yE } },
+    select: { dinnerMealId: true },
+  })
+
+  // Off-plan meals logged today
+  const offPlanMeals = await prisma.offPlanMeal.findMany({ where: { date: { gte: start, lte: end } } })
+
+  // extraConsumed = off-plan macros + already-eaten snack macros.
+  // Breakfast/dinner macros come through the combo loop via fixedBreakfastId/fixedDinnerId.
+  let extraConsumed: MacroTotals = ZERO
+  for (const m of offPlanMeals) {
+    extraConsumed = add(extraConsumed, { kcal: m.kcal, proteinG: m.proteinG, fatG: m.fatG, carbsG: m.carbsG })
+  }
+  for (const s of plan.snacks) {
+    if (s.eaten) extraConsumed = add(extraConsumed, fromMeal(s.meal))
+  }
+
+  const { breakfastId, dinnerId, snackIds } = await selectMeals({
+    fixedBreakfastId:   (plan.breakfastEaten || plan.breakfastLocked) ? plan.breakfastMealId : null,
+    fixedDinnerId:      (plan.dinnerEaten    || plan.dinnerLocked)    ? plan.dinnerMealId    : null,
+    yesterdaysDinnerId: plan.lunchEaten ? (yPlan?.dinnerMealId ?? null) : null,
+    extraConsumed,
+  })
+
+  await prisma.mealPlan.update({
+    where: { id: plan.id },
+    data: { breakfastMealId: breakfastId, dinnerMealId: dinnerId },
+  })
+
+  // Preserve eaten snacks; replace the rest with the new selection
+  await prisma.mealPlanSnack.deleteMany({ where: { mealPlanId: plan.id, eaten: false } })
+  if (snackIds.length > 0) {
+    await prisma.mealPlanSnack.createMany({
+      data: snackIds.map(mealId => ({ mealPlanId: plan.id, mealId })),
+    })
+  }
 }
 
 const planInclude = {

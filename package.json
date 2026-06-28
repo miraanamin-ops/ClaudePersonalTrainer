@@ -12,6 +12,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.106.0",
     "@libsql/client": "^0.14.0",
     "@prisma/adapter-libsql": "^6.0.0",
     "@prisma/client": "^6.0.0",

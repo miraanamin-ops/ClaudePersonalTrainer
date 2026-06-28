@@ -1,7 +1,7 @@
 'use client'
 
 import { useTransition } from 'react'
-import { lockMeal, swapMeal } from '@/app/nutrition/actions'
+import { lockMeal, swapMeal, markMealEaten } from '@/app/nutrition/actions'
 
 type Meal = {
   name: string
@@ -16,6 +16,7 @@ type Props = {
   meal: Meal
   slot: 'breakfast' | 'dinner'
   locked: boolean
+  eaten: boolean
   icon?: string
 }
 
@@ -24,21 +25,38 @@ const slotIcons: Record<string, string> = {
   Dinner:    'dark_mode',
 }
 
-export default function MealCard({ label, meal, slot, locked, icon }: Props) {
+export default function MealCard({ label, meal, slot, locked, eaten, icon }: Props) {
   const [isPending, startTransition] = useTransition()
   const mealIcon = icon ?? slotIcons[label] ?? 'restaurant'
 
   return (
-    <div className={`bg-surface-container border border-surface-container-highest rounded-xl p-md transition-opacity ${isPending ? 'opacity-50' : ''}`}>
+    <div className={`bg-surface-container border border-surface-container-highest rounded-xl p-md transition-opacity ${isPending ? 'opacity-50' : ''} ${eaten ? 'opacity-70' : ''}`}>
       <div className="flex justify-between items-start mb-md">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-primary-container">{mealIcon}</span>
           <h3 className="text-headline-md text-on-surface">{label}</h3>
+          {eaten && (
+            <span className="text-[10px] text-secondary bg-surface-container-high px-2 py-0.5 rounded-full">eaten</span>
+          )}
         </div>
         <div className="flex gap-xs">
           <button
+            onClick={() => startTransition(() => markMealEaten(slot, !eaten))}
+            disabled={isPending}
+            title={eaten ? 'Mark as not eaten' : 'Mark as eaten'}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container transition-colors"
+          >
+            <span
+              className="material-symbols-outlined"
+              style={eaten ? { fontVariationSettings: "'FILL' 1" } : undefined}
+            >
+              check_circle
+            </span>
+          </button>
+          <button
             onClick={() => startTransition(() => lockMeal(slot, !locked))}
             disabled={isPending}
+            title={locked ? 'Unlock' : 'Lock'}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container transition-colors"
           >
             <span
@@ -50,8 +68,9 @@ export default function MealCard({ label, meal, slot, locked, icon }: Props) {
           </button>
           <button
             onClick={() => startTransition(() => swapMeal(slot))}
-            disabled={isPending}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container active:rotate-180 transition-all"
+            disabled={isPending || eaten}
+            title="Swap meal"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container active:rotate-180 transition-all disabled:opacity-30"
           >
             <span className="material-symbols-outlined">refresh</span>
           </button>

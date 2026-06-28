@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { selectMeals, dateRange } from '@/lib/nutrition'
+import { selectMeals, dateRange, refitDay } from '@/lib/nutrition'
 import { revalidatePath } from 'next/cache'
 
 async function yesterdaysDinnerId(): Promise<number | null> {
@@ -9,6 +9,15 @@ async function yesterdaysDinnerId(): Promise<number | null> {
   const { start, end } = dateRange(y)
   const plan = await prisma.mealPlan.findFirst({ where: { date: { gte: start, lte: end } } })
   return plan?.dinnerMealId ?? null
+}
+
+async function todaysOffPlanConsumed() {
+  const { start, end } = dateRange(new Date())
+  const offPlan = await prisma.offPlanMeal.findMany({ where: { date: { gte: start, lte: end } } })
+  return offPlan.reduce(
+    (acc, m) => ({ kcal: acc.kcal + m.kcal, proteinG: acc.proteinG + m.proteinG, fatG: acc.fatG + m.fatG, carbsG: acc.carbsG + m.carbsG }),
+    { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 },
+  )
 }
 
 async function savePlan(
@@ -35,7 +44,7 @@ async function savePlan(
     planId = created.id
   }
 
-  await prisma.mealPlanSnack.deleteMany({ where: { mealPlanId: planId } })
+  await prisma.mealPlanSnack.deleteMany({ where: { mealPlanId: planId, eaten: false } })
   if (snackIds.length > 0) {
     await prisma.mealPlanSnack.createMany({
       data: snackIds.map(mealId => ({ mealPlanId: planId, mealId })),
@@ -48,11 +57,13 @@ export async function generatePlan() {
   const { start, end } = dateRange(new Date())
   const existing = await prisma.mealPlan.findFirst({ where: { date: { gte: start, lte: end } } })
   const yDinnerId = await yesterdaysDinnerId()
+  const extraConsumed = await todaysOffPlanConsumed()
 
   const { breakfastId, dinnerId, snackIds } = await selectMeals({
     fixedBreakfastId: existing?.breakfastLocked ? existing.breakfastMealId : null,
     fixedDinnerId:    existing?.dinnerLocked    ? existing.dinnerMealId    : null,
     yesterdaysDinnerId: yDinnerId,
+    extraConsumed,
   })
 
   await savePlan(
@@ -79,6 +90,7 @@ export async function swapMeal(slot: 'breakfast' | 'dinner') {
   if (!existing) return
 
   const yDinnerId = await yesterdaysDinnerId()
+  const extraConsumed = await todaysOffPlanConsumed()
 
   const { breakfastId, dinnerId, snackIds } = await selectMeals(
     slot === 'breakfast'
@@ -86,11 +98,13 @@ export async function swapMeal(slot: 'breakfast' | 'dinner') {
           fixedDinnerId:        existing.dinnerMealId,
           excludeBreakfastIds:  new Set([existing.breakfastMealId]),
           yesterdaysDinnerId:   yDinnerId,
+          extraConsumed,
         }
       : {
           fixedBreakfastId:   existing.breakfastMealId,
           excludeDinnerIds:   new Set([existing.dinnerMealId]),
           yesterdaysDinnerId: yDinnerId,
+          extraConsumed,
         },
   )
 
@@ -108,6 +122,28 @@ export async function saveTargets(kcal: number, proteinG: number, fatG: number, 
   } else {
     await prisma.nutritionTarget.create({ data: { kcal, proteinG, fatG, carbsG } })
   }
-  // Re-run selection so snacks/macros reflect new targets (respects existing locks)
   await generatePlan()
+}
+
+export async function markMealEaten(slot: 'breakfast' | 'lunch' | 'dinner', eaten: boolean) {
+  const { start, end } = dateRange(new Date())
+  const existing = await prisma.mealPlan.findFirst({ where: { date: { gte: start, lte: end } } })
+  if (!existing) return
+
+  const data =
+    slot === 'breakfast' ? { breakfastEaten: eaten } :
+    slot === 'lunch'     ? { lunchEaten: eaten }     :
+                           { dinnerEaten: eaten }
+
+  await prisma.mealPlan.update({ where: { id: existing.id }, data })
+  await refitDay(new Date())
+  revalidatePath('/nutrition')
+}
+
+export async function logOffPlanMeal(description: string, kcal: number, proteinG: number, fatG: number, carbsG: number) {
+  await prisma.offPlanMeal.create({
+    data: { date: new Date(), description, kcal, proteinG, fatG, carbsG },
+  })
+  await refitDay(new Date())
+  revalidatePath('/nutrition')
 }

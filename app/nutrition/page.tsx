@@ -4,6 +4,8 @@ import MealCard from '@/components/MealCard'
 import MacroSummary from '@/components/MacroSummary'
 import TargetsForm from '@/components/TargetsForm'
 import RegenerateButton from '@/components/RegenerateButton'
+import OffPlanLogger from '@/components/OffPlanLogger'
+import LunchEatenToggle from '@/components/LunchEatenToggle'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -16,6 +18,7 @@ export default async function NutritionPage() {
 
   if (!plan) return null
 
+  // Yesterday's dinner = today's lunch carry-forward
   const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1)
   const { start: yStart, end: yEnd } = dateRange(yesterday)
   const yPlan = await prisma.mealPlan.findFirst({
@@ -24,18 +27,34 @@ export default async function NutritionPage() {
   })
   const lunch = yPlan?.dinnerMeal ?? null
 
-  const lunchM = lunch
+  // Off-plan meals logged today
+  const { start: todayStart, end: todayEnd } = dateRange(new Date())
+  const offPlanMeals = await prisma.offPlanMeal.findMany({
+    where: { date: { gte: todayStart, lte: todayEnd } },
+    orderBy: { id: 'asc' },
+  })
+
+  // Lunch macros are only counted if plan.lunchEaten is true
+  const lunchM = (lunch && plan.lunchEaten)
     ? { kcal: lunch.kcal, proteinG: lunch.proteinG, fatG: lunch.fatG, carbsG: lunch.carbsG }
     : { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 }
+
+  const offPlanM = offPlanMeals.reduce(
+    (acc, m) => ({ kcal: acc.kcal + m.kcal, proteinG: acc.proteinG + m.proteinG, fatG: acc.fatG + m.fatG, carbsG: acc.carbsG + m.carbsG }),
+    { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 },
+  )
 
   const total = sumMacros([
     { kcal: plan.breakfastMeal.kcal, proteinG: plan.breakfastMeal.proteinG, fatG: plan.breakfastMeal.fatG, carbsG: plan.breakfastMeal.carbsG },
     lunchM,
     { kcal: plan.dinnerMeal.kcal, proteinG: plan.dinnerMeal.proteinG, fatG: plan.dinnerMeal.fatG, carbsG: plan.dinnerMeal.carbsG },
     ...plan.snacks.map(s => ({ kcal: s.meal.kcal, proteinG: s.meal.proteinG, fatG: s.meal.fatG, carbsG: s.meal.carbsG })),
+    offPlanM,
   ])
 
   const todayLabel = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+  const hasOffPlan = offPlanMeals.length > 0
+  const overKcal = total.kcal - targets.kcal
 
   return (
     <main className="min-h-screen pb-24 px-margin-mobile pt-6 max-w-md mx-auto">
@@ -63,19 +82,46 @@ export default async function NutritionPage() {
       {/* Macro summary */}
       <MacroSummary total={total} targets={targets} />
 
+      {/* Off-plan adaptation banner */}
+      {hasOffPlan && (
+        <div className="bg-surface-container border border-surface-container-highest rounded-xl px-md py-sm mb-md flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px] text-secondary">info</span>
+          <p className="text-body-sm text-secondary flex-1">
+            Remaining plan re-fitted around {offPlanMeals.length} off-plan meal{offPlanMeals.length > 1 ? 's' : ''}.
+            {' '}
+            {Math.abs(overKcal) < 50
+              ? 'Budget fully absorbed.'
+              : overKcal > 0
+                ? `Projected ${Math.round(overKcal)} kcal over target.`
+                : `Projected ${Math.round(-overKcal)} kcal under target.`}
+          </p>
+        </div>
+      )}
+
       {/* Meals */}
       <div className="space-y-md mb-md">
-        <MealCard label="Breakfast" meal={plan.breakfastMeal} slot="breakfast" locked={plan.breakfastLocked} />
+        <MealCard
+          label="Breakfast"
+          meal={plan.breakfastMeal}
+          slot="breakfast"
+          locked={plan.breakfastLocked}
+          eaten={plan.breakfastEaten}
+        />
 
-        {/* Lunch — derived */}
+        {/* Lunch — yesterday's dinner as leftover */}
         <div className="bg-surface-container border border-surface-container-highest rounded-xl p-md">
           <div className="flex items-center gap-2 mb-md">
             <span className="material-symbols-outlined text-primary-container">wb_sunny</span>
             <h3 className="text-headline-md text-on-surface">Lunch</h3>
-            <span className="text-[10px] text-secondary bg-surface-container-high px-2 py-0.5 rounded-full ml-auto">yesterday's dinner</span>
+            <span className="text-[10px] text-secondary bg-surface-container-high px-2 py-0.5 rounded-full ml-auto">
+              yesterday&apos;s dinner
+            </span>
+            {lunch && (
+              <LunchEatenToggle eaten={plan.lunchEaten} />
+            )}
           </div>
           {lunch ? (
-            <div className="flex gap-md items-start">
+            <div className={`flex gap-md items-start transition-opacity ${!plan.lunchEaten ? 'opacity-50' : ''}`}>
               <div className="flex-1">
                 <p className="text-body-lg text-on-surface font-semibold">{lunch.name}</p>
                 <div className="flex gap-sm mt-xs flex-wrap">
@@ -94,7 +140,13 @@ export default async function NutritionPage() {
           )}
         </div>
 
-        <MealCard label="Dinner" meal={plan.dinnerMeal} slot="dinner" locked={plan.dinnerLocked} />
+        <MealCard
+          label="Dinner"
+          meal={plan.dinnerMeal}
+          slot="dinner"
+          locked={plan.dinnerLocked}
+          eaten={plan.dinnerEaten}
+        />
 
         {/* Snacks */}
         {plan.snacks.length > 0 && (
@@ -106,7 +158,7 @@ export default async function NutritionPage() {
             </div>
             <div className="space-y-sm">
               {plan.snacks.map(s => (
-                <div key={s.id} className="flex items-center justify-between bg-surface-container-high p-sm rounded-lg">
+                <div key={s.id} className={`flex items-center justify-between bg-surface-container-high p-sm rounded-lg ${s.eaten ? 'opacity-60' : ''}`}>
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-secondary text-[20px]">nutrition</span>
                     <div>
@@ -120,6 +172,9 @@ export default async function NutritionPage() {
             </div>
           </div>
         )}
+
+        {/* Off-plan meals logger */}
+        <OffPlanLogger existing={offPlanMeals} />
       </div>
 
       {/* Targets */}

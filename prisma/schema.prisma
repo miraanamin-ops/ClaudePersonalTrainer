@@ -141,6 +141,9 @@ model MealPlan {
   dinnerMealId    Int
   breakfastLocked Boolean         @default(false) @map("breakfast_locked")
   dinnerLocked    Boolean         @default(false) @map("dinner_locked")
+  breakfastEaten  Boolean         @default(false) @map("breakfast_eaten")
+  lunchEaten      Boolean         @default(true)  @map("lunch_eaten")
+  dinnerEaten     Boolean         @default(false) @map("dinner_eaten")
   breakfastMeal   Meal            @relation("BreakfastMeal", fields: [breakfastMealId], references: [id])
   dinnerMeal      Meal            @relation("DinnerMeal", fields: [dinnerMealId], references: [id])
   snacks          MealPlanSnack[]
@@ -152,10 +155,23 @@ model MealPlanSnack {
   id         Int      @id @default(autoincrement())
   mealPlanId Int      @map("meal_plan_id")
   mealId     Int      @map("meal_id")
+  eaten      Boolean  @default(false)
   mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id])
   meal       Meal     @relation(fields: [mealId], references: [id])
 
   @@map("meal_plan_snacks")
+}
+
+model OffPlanMeal {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  description String
+  kcal        Int
+  proteinG    Float    @map("protein_g")
+  fatG        Float    @map("fat_g")
+  carbsG      Float    @map("carbs_g")
+
+  @@map("off_plan_meals")
 }
 
 model NutritionTarget {

@@ -145,6 +145,27 @@ async function main() {
     console.log('  · nutrition targets already set')
   }
 
+  // -------------------------------------------------------------------------
+  // Phase 8: off-plan meals + eaten tracking
+  // -------------------------------------------------------------------------
+  await addColumn(client, 'ALTER TABLE meal_plan ADD COLUMN breakfast_eaten INTEGER NOT NULL DEFAULT 0', 'meal_plan.breakfast_eaten')
+  await addColumn(client, 'ALTER TABLE meal_plan ADD COLUMN lunch_eaten INTEGER NOT NULL DEFAULT 1', 'meal_plan.lunch_eaten')
+  await addColumn(client, 'ALTER TABLE meal_plan ADD COLUMN dinner_eaten INTEGER NOT NULL DEFAULT 0', 'meal_plan.dinner_eaten')
+  await addColumn(client, 'ALTER TABLE meal_plan_snacks ADD COLUMN eaten INTEGER NOT NULL DEFAULT 0', 'meal_plan_snacks.eaten')
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS off_plan_meals (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      date        DATETIME NOT NULL,
+      description TEXT NOT NULL,
+      kcal        INTEGER NOT NULL,
+      protein_g   REAL NOT NULL,
+      fat_g       REAL NOT NULL,
+      carbs_g     REAL NOT NULL
+    )
+  `)
+  console.log('  · off_plan_meals table ensured')
+
   client.close()
   console.log('Done.')
 }
