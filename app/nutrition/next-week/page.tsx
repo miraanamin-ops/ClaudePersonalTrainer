@@ -13,8 +13,8 @@ function weekRangeLabel(days: Date[]) {
   return `${fmtShort(days[0])} – ${fmtShort(days[6])}`
 }
 
-export default async function NutritionWeekPage() {
-  const weekDays = await getOrCreateWeekPlan()
+export default async function NutritionNextWeekPage() {
+  const weekDays = await getOrCreateWeekPlan(1)
 
   return (
     <main className="min-h-screen pb-24 px-margin-mobile pt-6 max-w-md mx-auto">
@@ -34,20 +34,20 @@ export default async function NutritionWeekPage() {
         >
           TODAY
         </Link>
-        <span className="flex-1 text-center pb-sm text-label-caps font-bold text-primary-container border-b-2 border-primary-container -mb-px">
-          THIS WEEK
-        </span>
         <Link
-          href="/nutrition/next-week"
+          href="/nutrition/week"
           className="flex-1 text-center pb-sm text-label-caps text-secondary border-b-2 border-transparent -mb-px"
         >
-          NEXT WEEK
+          THIS WEEK
         </Link>
+        <span className="flex-1 text-center pb-sm text-label-caps font-bold text-primary-container border-b-2 border-primary-container -mb-px">
+          NEXT WEEK
+        </span>
       </div>
 
       {/* Day cards */}
       <ul className="space-y-sm">
-        {weekDays.map(({ date, isToday, plan }) => {
+        {weekDays.map(({ date, plan }) => {
           const dayIdx = (date.getDay() + 6) % 7 // Mon=0…Sun=6
           const total = sumMacros([
             { kcal: plan.breakfastMeal.kcal, proteinG: plan.breakfastMeal.proteinG, fatG: plan.breakfastMeal.fatG, carbsG: plan.breakfastMeal.carbsG },
@@ -57,32 +57,16 @@ export default async function NutritionWeekPage() {
 
           return (
             <li key={date.toISOString()}>
-              <div className={`bg-surface-container rounded-xl p-md border transition-colors ${
-                isToday
-                  ? 'border-primary-container/60'
-                  : 'border-surface-container-highest'
-              }`}>
+              <div className="bg-surface-container rounded-xl p-md border border-surface-container-highest">
                 {/* Day header */}
                 <div className="flex items-center justify-between mb-sm">
-                  {isToday ? (
-                    <Link href="/nutrition" className="flex items-center gap-2 active:opacity-70 transition-opacity">
-                      <span className="text-label-caps font-bold text-primary-container">
-                        {DAY_NAMES[dayIdx].toUpperCase()}
-                      </span>
-                      <span className="text-label-caps text-secondary">{fmtShort(date)}</span>
-                      <span className="text-[10px] font-bold bg-primary-container text-on-primary-container px-2 py-0.5 rounded-full">
-                        TODAY
-                      </span>
-                    </Link>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="text-label-caps font-bold text-on-surface">
-                        {DAY_NAMES[dayIdx].toUpperCase()}
-                      </span>
-                      <span className="text-label-caps text-secondary">{fmtShort(date)}</span>
-                    </div>
-                  )}
-                  <span className={`text-headline-md font-bold ${isToday ? 'text-primary-container' : 'text-on-surface'}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-label-caps font-bold text-on-surface">
+                      {DAY_NAMES[dayIdx].toUpperCase()}
+                    </span>
+                    <span className="text-label-caps text-secondary">{fmtShort(date)}</span>
+                  </div>
+                  <span className="text-headline-md font-bold text-on-surface">
                     {total.kcal.toLocaleString()}
                     <span className="text-[10px] font-normal text-secondary ml-1">kcal</span>
                   </span>
@@ -93,7 +77,7 @@ export default async function NutritionWeekPage() {
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-secondary text-[16px]">wb_sunny</span>
                     <Link
-                      href={`/nutrition/meals/${plan.breakfastMeal.id}`}
+                      href={`/nutrition/meals/${plan.breakfastMeal.id}?week=next`}
                       className="text-body-sm text-on-surface truncate hover:text-primary-container active:opacity-70 transition-colors"
                     >
                       {plan.breakfastMeal.name}
@@ -102,7 +86,7 @@ export default async function NutritionWeekPage() {
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-secondary text-[16px]">bedtime</span>
                     <Link
-                      href={`/nutrition/meals/${plan.dinnerMeal.id}`}
+                      href={`/nutrition/meals/${plan.dinnerMeal.id}?week=next`}
                       className="text-body-sm text-on-surface truncate hover:text-primary-container active:opacity-70 transition-colors"
                     >
                       {plan.dinnerMeal.name}

@@ -25,10 +25,11 @@ export default async function MealRecipePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ scale?: string }>
+  searchParams: Promise<{ scale?: string; week?: string }>
 }) {
   const { id: idStr } = await params
-  const { scale: scaleStr } = await searchParams
+  const { scale: scaleStr, week } = await searchParams
+  const isNextWeek = week === 'next'
   const id = parseInt(idStr, 10)
   if (isNaN(id)) notFound()
 
@@ -66,9 +67,11 @@ export default async function MealRecipePage({
   const remainingProtein = Math.max(0, targets.proteinG - consumedProtein)
 
   // ── Serving scale ─────────────────────────────────────────────────────────
-  // URL param takes priority; otherwise auto-suggest from remaining protein
+  // Next-week context always 1×; URL param takes priority; otherwise auto-suggest from remaining protein
   let initialScale: number
-  if (scaleStr) {
+  if (isNextWeek) {
+    initialScale = 1
+  } else if (scaleStr) {
     const parsed = parseFloat(scaleStr)
     initialScale = snapScale(isNaN(parsed) ? 1 : Math.min(3, Math.max(0.5, parsed)))
   } else {
@@ -94,14 +97,18 @@ export default async function MealRecipePage({
     name:     ing.ingredientName,
     quantity: ing.quantity,
     unit:     ing.unit,
+    aisle:    ing.supermarketAisle,
   }))
 
   return (
     <main className="min-h-screen pb-24 px-margin-mobile pt-6 max-w-md mx-auto">
       {/* Back */}
-      <Link href="/nutrition" className="flex items-center gap-1 text-secondary text-body-sm mb-lg -ml-0.5">
+      <Link
+        href={isNextWeek ? '/nutrition/next-week' : '/nutrition'}
+        className="flex items-center gap-1 text-secondary text-body-sm mb-lg -ml-0.5"
+      >
         <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-        Today
+        {isNextWeek ? 'Next Week' : 'Today'}
       </Link>
 
       {/* Header */}
@@ -112,8 +119,8 @@ export default async function MealRecipePage({
         <h1 className="text-headline-lg-mobile text-on-surface mt-xs leading-tight">{meal.name}</h1>
       </div>
 
-      {/* Protein context banner */}
-      {todayPlan && (
+      {/* Protein context banner — only for today's context */}
+      {!isNextWeek && todayPlan && (
         <div className="bg-surface-container border border-surface-container-highest rounded-xl px-md py-sm mb-lg">
           <div className="flex items-start gap-2">
             <span className="material-symbols-outlined text-[18px] text-secondary shrink-0 mt-0.5">info</span>
@@ -136,6 +143,7 @@ export default async function MealRecipePage({
         ingredients={ingredients}
         instructions={instructions}
         initialScale={initialScale}
+        showShoppingStatus={isNextWeek}
       />
     </main>
   )

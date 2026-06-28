@@ -91,6 +91,12 @@ export default async function NutritionPage() {
         >
           THIS WEEK
         </Link>
+        <Link
+          href="/nutrition/next-week"
+          className="flex-1 text-center pb-sm text-label-caps text-secondary border-b-2 border-transparent -mb-px"
+        >
+          NEXT WEEK
+        </Link>
       </div>
 
       {/* Macro summary */}

@@ -1,17 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+const SHOPPING_KEY = 'shopping-ticked-v1'
 
 const STEPS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 
 type Macros = { kcal: number; proteinG: number; fatG: number; carbsG: number }
-type Ingredient = { name: string; quantity: number; unit: string }
+type Ingredient = { name: string; quantity: number; unit: string; aisle?: string }
 
 type Props = {
   meal: Macros
   ingredients: Ingredient[]
   instructions: string[]
   initialScale: number
+  showShoppingStatus?: boolean
 }
 
 function fmtQty(n: number): string {
@@ -22,11 +25,20 @@ function fmtQty(n: number): string {
   return rounded.toFixed(2).replace(/\.?0+$/, '')
 }
 
-export default function ServingAdjuster({ meal, ingredients, instructions, initialScale }: Props) {
+export default function ServingAdjuster({ meal, ingredients, instructions, initialScale, showShoppingStatus }: Props) {
   const snapInitial = STEPS.reduce((prev, curr) =>
     Math.abs(curr - initialScale) < Math.abs(prev - initialScale) ? curr : prev,
   )
   const [scale, setScale] = useState(snapInitial)
+  const [ticked, setTicked] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (!showShoppingStatus) return
+    try {
+      const stored = localStorage.getItem(SHOPPING_KEY)
+      if (stored) setTicked(new Set(JSON.parse(stored) as string[]))
+    } catch {}
+  }, [showShoppingStatus])
 
   const idx = STEPS.indexOf(scale)
   const canDown = idx > 0
@@ -79,15 +91,28 @@ export default function ServingAdjuster({ meal, ingredients, instructions, initi
       {/* Ingredients */}
       <h2 className="text-headline-md text-on-surface mb-sm">Ingredients</h2>
       <div className="space-y-xs mb-lg">
-        {ingredients.map((ing, i) => (
-          <div key={i} className="flex items-center justify-between bg-surface-container-high rounded-lg px-md py-sm">
-            <span className="text-body-sm text-on-surface">{ing.name}</span>
-            <span className="text-body-sm text-primary-container font-semibold shrink-0 ml-sm">
-              {fmtQty(ing.quantity * scale)} {ing.unit}
-            </span>
-          </div>
-        ))}
+        {ingredients.map((ing, i) => {
+          const shoppingKey = ing.aisle ? `${ing.aisle}|||${ing.name}` : null
+          const isBought = shoppingKey ? ticked.has(shoppingKey) : true
+          const needsToBuy = showShoppingStatus && !isBought
+          return (
+            <div key={i} className={`flex items-center justify-between rounded-lg px-md py-sm ${needsToBuy ? 'bg-error/10' : 'bg-surface-container-high'}`}>
+              <span className={`text-body-sm ${needsToBuy ? 'text-error font-medium' : 'text-on-surface'}`}>
+                {ing.name}
+              </span>
+              <span className={`text-body-sm font-semibold shrink-0 ml-sm ${needsToBuy ? 'text-error' : 'text-primary-container'}`}>
+                {fmtQty(ing.quantity * scale)} {ing.unit}
+              </span>
+            </div>
+          )
+        })}
       </div>
+      {showShoppingStatus && ingredients.some(ing => ing.aisle && !ticked.has(`${ing.aisle}|||${ing.name}`)) && (
+        <p className="text-body-sm text-error mb-lg flex items-center gap-1">
+          <span className="material-symbols-outlined text-[16px]">shopping_cart</span>
+          Red items are not yet ticked in your shopping list.
+        </p>
+      )}
 
       {/* Instructions */}
       {instructions.length > 0 && (
