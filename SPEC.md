@@ -43,6 +43,13 @@ Daily selection logic:
 - Pick a breakfast + a dinner whose combined macros (plus the carried-over lunch) land within a tolerance band of the daily targets (e.g. plus or minus 10% on calories, protein at or above target).
 - Avoid repeating the same dinner two days running.
 - Let the user lock or swap any meal.
+- Always select up to 2 snacks within the remaining kcal budget (protein-dense first), regardless of whether the protein target is already met. This ensures snack ingredients always appear on the shopping list.
+
+Snack tracking:
+- Each planned snack can be marked **eaten** (check) or **skipped** (cancel). These are mutually exclusive states.
+- Eaten snacks count toward the day's macro totals and are preserved across re-fits.
+- Skipped snacks are zeroed from the day's macro totals and are also preserved (visible as grayed-out). Re-fit treats a skipped snack as not consumed, so the engine may suggest a replacement snack when re-fit is triggered by other events (e.g. logging an off-plan meal).
+- Pending snacks (neither eaten nor skipped) are replaced by re-fit if the macro balance changes.
 
 ## 5. Training plan
 

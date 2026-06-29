@@ -6,6 +6,7 @@ import TargetsForm from '@/components/TargetsForm'
 import RegenerateButton from '@/components/RegenerateButton'
 import OffPlanLogger from '@/components/OffPlanLogger'
 import LunchEatenToggle from '@/components/LunchEatenToggle'
+import SnackCard from '@/components/SnackCard'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -48,7 +49,7 @@ export default async function NutritionPage() {
     plan.breakfastSkipped ? { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 } : { kcal: plan.breakfastMeal.kcal, proteinG: plan.breakfastMeal.proteinG, fatG: plan.breakfastMeal.fatG, carbsG: plan.breakfastMeal.carbsG },
     lunchM,
     plan.dinnerSkipped    ? { kcal: 0, proteinG: 0, fatG: 0, carbsG: 0 } : { kcal: plan.dinnerMeal.kcal,    proteinG: plan.dinnerMeal.proteinG,    fatG: plan.dinnerMeal.fatG,    carbsG: plan.dinnerMeal.carbsG    },
-    ...plan.snacks.map(s => ({ kcal: s.meal.kcal, proteinG: s.meal.proteinG, fatG: s.meal.fatG, carbsG: s.meal.carbsG })),
+    ...plan.snacks.filter(s => !s.skipped).map(s => ({ kcal: s.meal.kcal, proteinG: s.meal.proteinG, fatG: s.meal.fatG, carbsG: s.meal.carbsG })),
     offPlanM,
   ])
 
@@ -189,16 +190,7 @@ export default async function NutritionPage() {
             </div>
             <div className="space-y-sm">
               {plan.snacks.map(s => (
-                <div key={s.id} className={`flex items-center justify-between bg-surface-container-high p-sm rounded-lg ${s.eaten ? 'opacity-60' : ''}`}>
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-secondary text-[20px]">nutrition</span>
-                    <div>
-                      <p className="text-body-sm text-on-surface font-semibold">{s.meal.name}</p>
-                      <p className="text-[10px] text-secondary">P: {s.meal.proteinG}g | C: {s.meal.carbsG}g | F: {s.meal.fatG}g</p>
-                    </div>
-                  </div>
-                  <p className="text-headline-md text-primary-container">{s.meal.kcal}</p>
-                </div>
+                <SnackCard key={s.id} snack={s} />
               ))}
             </div>
           </div>

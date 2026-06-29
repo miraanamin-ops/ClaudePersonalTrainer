@@ -160,6 +160,7 @@ model MealPlanSnack {
   mealPlanId Int      @map("meal_plan_id")
   mealId     Int      @map("meal_id")
   eaten      Boolean  @default(false)
+  skipped    Boolean  @default(false)
   mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id])
   meal       Meal     @relation(fields: [mealId], references: [id])
 

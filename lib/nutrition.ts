@@ -110,24 +110,22 @@ export async function selectMeals(opts: {
     }
   }
 
-  // Top up protein with snacks, highest protein-per-calorie first, max 2
+  // Select snacks within the kcal budget, protein-dense first (max 2).
+  // Always attempts to add snacks regardless of whether the protein target is
+  // already met — this ensures snack ingredients always appear on the shopping
+  // list and gives the user something to eat/skip each day.
   const base = add(add(fromMeal(bestB), fromMeal(bestD)), baseConsumed)
   const snackIds: number[] = []
 
-  if (base.proteinG < targets.proteinG) {
-    const sorted = [...allSnacks].sort(
-      (a, b) => (b.proteinG / Math.max(b.kcal, 1)) - (a.proteinG / Math.max(a.kcal, 1)),
-    )
-    let runProtein = base.proteinG
-    let runKcal    = base.kcal
-
-    for (const snack of sorted) {
-      if (runProtein >= targets.proteinG || snackIds.length >= 2) break
-      if (runKcal + snack.kcal > targets.kcal * 1.15) continue
-      snackIds.push(snack.id)
-      runProtein += snack.proteinG
-      runKcal    += snack.kcal
-    }
+  const sortedSnacks = [...allSnacks].sort(
+    (a, b) => (b.proteinG / Math.max(b.kcal, 1)) - (a.proteinG / Math.max(a.kcal, 1)),
+  )
+  let runKcal = base.kcal
+  for (const snack of sortedSnacks) {
+    if (snackIds.length >= 2) break
+    if (runKcal + snack.kcal > targets.kcal * 1.15) continue
+    snackIds.push(snack.id)
+    runKcal += snack.kcal
   }
 
   return { breakfastId: bestB.id, dinnerId: bestD.id, snackIds }
@@ -178,8 +176,8 @@ export async function refitDay(date: Date) {
     data: { breakfastMealId: breakfastId, dinnerMealId: dinnerId },
   })
 
-  // Preserve eaten snacks; replace the rest with the new selection
-  await prisma.mealPlanSnack.deleteMany({ where: { mealPlanId: plan.id, eaten: false } })
+  // Preserve eaten and skipped snacks; replace only pending (uneaten, unskipped) ones
+  await prisma.mealPlanSnack.deleteMany({ where: { mealPlanId: plan.id, eaten: false, skipped: false } })
   if (snackIds.length > 0) {
     await prisma.mealPlanSnack.createMany({
       data: snackIds.map(mealId => ({ mealPlanId: plan.id, mealId })),

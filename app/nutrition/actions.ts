@@ -139,6 +139,23 @@ export async function skipMeal(slot: 'breakfast' | 'lunch' | 'dinner', skipped: 
   revalidatePath('/nutrition')
 }
 
+export async function markSnackEaten(snackId: number, eaten: boolean) {
+  await prisma.mealPlanSnack.update({
+    where: { id: snackId },
+    data: { eaten, ...(eaten ? { skipped: false } : {}) },
+  })
+  await refitDay(new Date())
+  revalidatePath('/nutrition')
+}
+
+export async function skipSnack(snackId: number, skipped: boolean) {
+  await prisma.mealPlanSnack.update({
+    where: { id: snackId },
+    data: { skipped, ...(skipped ? { eaten: false } : {}) },
+  })
+  revalidatePath('/nutrition')
+}
+
 export async function deleteOffPlanMeal(id: number) {
   await prisma.offPlanMeal.delete({ where: { id } })
   await refitDay(new Date())

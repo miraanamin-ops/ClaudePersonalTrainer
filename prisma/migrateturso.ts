@@ -156,6 +156,7 @@ async function main() {
   await addColumn(client, 'ALTER TABLE meal_plan ADD COLUMN breakfast_skipped INTEGER NOT NULL DEFAULT 0', 'meal_plan.breakfast_skipped')
   await addColumn(client, 'ALTER TABLE meal_plan ADD COLUMN lunch_skipped INTEGER NOT NULL DEFAULT 0', 'meal_plan.lunch_skipped')
   await addColumn(client, 'ALTER TABLE meal_plan ADD COLUMN dinner_skipped INTEGER NOT NULL DEFAULT 0', 'meal_plan.dinner_skipped')
+  await addColumn(client, 'ALTER TABLE meal_plan_snacks ADD COLUMN skipped INTEGER NOT NULL DEFAULT 0', 'meal_plan_snacks.skipped')
 
   await client.execute(`
     CREATE TABLE IF NOT EXISTS off_plan_meals (
