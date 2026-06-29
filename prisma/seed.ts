@@ -2,38 +2,66 @@ import * as dotenv from 'dotenv'
 import * as path from 'path'
 import { fileURLToPath } from 'url'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const root = path.resolve(__dirname, '..')
-dotenv.config({ path: path.join(root, '.env.local') })
+const root = process.cwd()
+// override: true because @prisma/client auto-loads .env when required (import hoisting),
+// so DATABASE_URL may already be set to the local file URL before this runs.
+dotenv.config({ path: path.join(root, '.env.local'), override: true })
 dotenv.config({ path: path.join(root, '.env') })
 
 import { PrismaClient } from '@prisma/client'
 import { PrismaLibSQL } from '@prisma/adapter-libsql'
+import { createClient } from '@libsql/client/http'
 
 // ---------------------------------------------------------------------------
 // EXERCISES
 // ---------------------------------------------------------------------------
 
+// isPriority is intentionally omitted here — Prisma's libSQL adapter can't handle
+// the @map("is_priority") column in createMany. It defaults to false, and a raw
+// SQL UPDATE below sets it to true for compound lifts after the insert.
 const exerciseData = [
-  // Upper body — compounds (priority)
-  { name: 'Dumbbell Chest Press',    muscleGroup: 'chest',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5, isPriority: true  },
-  { name: 'Lat Pulldown',            muscleGroup: 'back',            repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5, isPriority: true  },
-  { name: 'Dumbbell Row',            muscleGroup: 'back',            repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5, isPriority: true  },
-  { name: 'Dumbbell Shoulder Press', muscleGroup: 'shoulders',       repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5, isPriority: true  },
-  // Upper body — isolations
-  { name: 'Bicep Curl',              muscleGroup: 'biceps',          repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5, isPriority: false },
-  { name: 'Tricep Pushdown',         muscleGroup: 'triceps',         repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5, isPriority: false },
-  // Lower body — compounds (priority)
-  { name: 'Squat',                   muscleGroup: 'quads',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0, isPriority: true  },
-  { name: 'Romanian Deadlift',       muscleGroup: 'hamstrings',      repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0, isPriority: true  },
-  { name: 'Leg Press',               muscleGroup: 'quads',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0, isPriority: true  },
-  // Lower body — isolations
-  { name: 'Hamstring Curl',          muscleGroup: 'hamstrings',      repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5, isPriority: false },
-  { name: 'Leg Extension',           muscleGroup: 'quads',           repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5, isPriority: false },
-  { name: 'Calf Raise',              muscleGroup: 'calves',          repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5, isPriority: false },
-  // Full Body B extras
-  { name: 'Deadlift',                muscleGroup: 'posterior chain', repRangeLow: 5,  repRangeHigh: 8,  incrementKg: 5.0, isPriority: true  },
-  { name: 'Incline Dumbbell Press',  muscleGroup: 'chest',           repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5, isPriority: true  },
+  // ── Chest ─────────────────────────────────────────────────────────────
+  { name: 'Dumbbell Chest Press',      muscleGroup: 'chest',      repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5 },
+  { name: 'Incline Dumbbell Press',    muscleGroup: 'chest',      repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5 },
+  { name: 'Cable Fly',                 muscleGroup: 'chest',      repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  // ── Back ──────────────────────────────────────────────────────────────
+  { name: 'Lat Pulldown',              muscleGroup: 'back',       repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5 },
+  { name: 'Seated Cable Row',          muscleGroup: 'back',       repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5 },
+  { name: 'Dumbbell Row',              muscleGroup: 'back',       repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5 },
+  // ── Shoulders ─────────────────────────────────────────────────────────
+  { name: 'Dumbbell Shoulder Press',   muscleGroup: 'shoulders',  repRangeLow: 6,  repRangeHigh: 10, incrementKg: 2.5 },
+  { name: 'DB Lateral Raise',          muscleGroup: 'shoulders',  repRangeLow: 12, repRangeHigh: 20, incrementKg: 1.0 },
+  { name: 'Face Pull',                 muscleGroup: 'rear delts', repRangeLow: 15, repRangeHigh: 20, incrementKg: 2.5 },
+  { name: 'Rear Delt Fly',             muscleGroup: 'rear delts', repRangeLow: 12, repRangeHigh: 20, incrementKg: 1.0 },
+  // ── Biceps ────────────────────────────────────────────────────────────
+  { name: 'Bicep Curl',                muscleGroup: 'biceps',     repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  { name: 'Hammer Curl',               muscleGroup: 'biceps',     repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  // ── Triceps ───────────────────────────────────────────────────────────
+  { name: 'Tricep Pushdown',           muscleGroup: 'triceps',    repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  { name: 'Overhead Tricep Extension', muscleGroup: 'triceps',    repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  // ── Quads ─────────────────────────────────────────────────────────────
+  { name: 'Squat',                     muscleGroup: 'quads',      repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0 },
+  { name: 'Leg Press',                 muscleGroup: 'quads',      repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0 },
+  { name: 'Leg Extension',             muscleGroup: 'quads',      repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  // ── Hamstrings ────────────────────────────────────────────────────────
+  { name: 'Romanian Deadlift',         muscleGroup: 'hamstrings', repRangeLow: 6,  repRangeHigh: 10, incrementKg: 5.0 },
+  { name: 'Leg Curl',                  muscleGroup: 'hamstrings', repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  { name: 'Lying Leg Curl',            muscleGroup: 'hamstrings', repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  // ── Calves ────────────────────────────────────────────────────────────
+  { name: 'Standing Calf Raise',       muscleGroup: 'calves',     repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  { name: 'Seated Calf Raise',         muscleGroup: 'calves',     repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+]
+
+const priorityExerciseNames = [
+  'Dumbbell Chest Press',
+  'Incline Dumbbell Press',
+  'Lat Pulldown',
+  'Seated Cable Row',
+  'Dumbbell Row',
+  'Dumbbell Shoulder Press',
+  'Squat',
+  'Leg Press',
+  'Romanian Deadlift',
 ]
 
 // ---------------------------------------------------------------------------
@@ -41,43 +69,90 @@ const exerciseData = [
 // ---------------------------------------------------------------------------
 
 const templateData = [
+  // ── 4-DAY SPLIT (primary) ─────────────────────────────────────────────
   {
-    name: 'Upper',
+    name: 'Upper A',
     exercises: [
-      { name: 'Dumbbell Chest Press',    sets: 3 },
-      { name: 'Lat Pulldown',            sets: 3 },
-      { name: 'Dumbbell Row',            sets: 3 },
-      { name: 'Dumbbell Shoulder Press', sets: 3 },
-      { name: 'Bicep Curl',              sets: 3 },
-      { name: 'Tricep Pushdown',         sets: 3 },
+      { name: 'Dumbbell Chest Press',      sets: 4 },
+      { name: 'Cable Fly',                 sets: 3 },
+      { name: 'Seated Cable Row',          sets: 4 },
+      { name: 'Rear Delt Fly',             sets: 2 },
+      { name: 'DB Lateral Raise',          sets: 3 },
+      { name: 'Bicep Curl',                sets: 3 },
+      { name: 'Tricep Pushdown',           sets: 3 },
+      { name: 'Standing Calf Raise',       sets: 3 },
     ],
   },
   {
-    name: 'Lower',
+    name: 'Lower A',
     exercises: [
-      { name: 'Squat',             sets: 3 },
-      { name: 'Romanian Deadlift', sets: 3 },
-      { name: 'Leg Extension',     sets: 3 },
-      { name: 'Hamstring Curl',    sets: 3 },
-      { name: 'Calf Raise',        sets: 3 },
+      { name: 'Squat',                     sets: 4 },
+      { name: 'Romanian Deadlift',         sets: 3 },
+      { name: 'Leg Extension',             sets: 3 },
+      { name: 'Leg Curl',                  sets: 3 },
+      { name: 'Standing Calf Raise',       sets: 4 },
     ],
   },
+  {
+    name: 'Upper B',
+    exercises: [
+      { name: 'Lat Pulldown',              sets: 4 },
+      { name: 'Dumbbell Shoulder Press',   sets: 4 },
+      { name: 'Incline Dumbbell Press',    sets: 3 },
+      { name: 'Face Pull',                 sets: 4 },
+      { name: 'DB Lateral Raise',          sets: 3 },
+      { name: 'Hammer Curl',               sets: 3 },
+      { name: 'Overhead Tricep Extension', sets: 3 },
+      { name: 'Seated Calf Raise',         sets: 3 },
+    ],
+  },
+  {
+    name: 'Lower B',
+    exercises: [
+      { name: 'Romanian Deadlift',         sets: 4 },
+      { name: 'Leg Press',                 sets: 3 },
+      { name: 'Lying Leg Curl',            sets: 4 },
+      { name: 'Leg Extension',             sets: 2 },
+      { name: 'Seated Calf Raise',         sets: 4 },
+    ],
+  },
+  // ── 3-DAY FALLBACK ────────────────────────────────────────────────────
   {
     name: 'Full Body A',
     exercises: [
-      { name: 'Squat',                   sets: 3 },
-      { name: 'Dumbbell Chest Press',    sets: 3 },
-      { name: 'Dumbbell Row',            sets: 3 },
-      { name: 'Dumbbell Shoulder Press', sets: 3 },
+      { name: 'Squat',                     sets: 4 },
+      { name: 'Dumbbell Chest Press',      sets: 3 },
+      { name: 'Seated Cable Row',          sets: 3 },
+      { name: 'DB Lateral Raise',          sets: 2 },
+      { name: 'Bicep Curl',                sets: 2 },
+      { name: 'Tricep Pushdown',           sets: 2 },
+      { name: 'Standing Calf Raise',       sets: 3 },
     ],
   },
   {
     name: 'Full Body B',
     exercises: [
-      { name: 'Deadlift',               sets: 3 },
-      { name: 'Lat Pulldown',           sets: 3 },
-      { name: 'Leg Press',              sets: 3 },
-      { name: 'Incline Dumbbell Press', sets: 3 },
+      { name: 'Romanian Deadlift',         sets: 4 },
+      { name: 'Lat Pulldown',              sets: 3 },
+      { name: 'Dumbbell Shoulder Press',   sets: 3 },
+      { name: 'Leg Extension',             sets: 2 },
+      { name: 'Leg Curl',                  sets: 3 },
+      { name: 'Hammer Curl',               sets: 2 },
+      { name: 'Overhead Tricep Extension', sets: 2 },
+      { name: 'Seated Calf Raise',         sets: 3 },
+    ],
+  },
+  {
+    name: 'Full Body C',
+    exercises: [
+      { name: 'Leg Press',                 sets: 3 },
+      { name: 'Incline Dumbbell Press',    sets: 3 },
+      { name: 'Dumbbell Row',              sets: 3 },
+      { name: 'Face Pull',                 sets: 3 },
+      { name: 'Lying Leg Curl',            sets: 3 },
+      { name: 'Bicep Curl',                sets: 2 },
+      { name: 'Tricep Pushdown',           sets: 2 },
+      { name: 'Standing Calf Raise',       sets: 3 },
     ],
   },
 ]
@@ -486,51 +561,102 @@ async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL is not set. Create .env.local with your Turso credentials.')
   }
-
   const adapter = new PrismaLibSQL({
     url: process.env.DATABASE_URL,
     authToken: process.env.DATABASE_AUTH_TOKEN,
   })
   const prisma = new PrismaClient({ adapter })
 
+  // Raw libSQL client used for exercise operations only — the Prisma libSQL adapter
+  // fails to INSERT into the exercises table because it can't resolve the @map("is_priority")
+  // column at query time. Raw SQL bypasses this and works correctly.
+  const rawClient = createClient({
+    url: process.env.DATABASE_URL,
+    authToken: process.env.DATABASE_AUTH_TOKEN,
+  })
+
   try {
     console.log('🌱 Seeding database...')
 
-    // Clear existing seed data (safe to re-run)
+    // ── Meals: delete-and-recreate (safe — no non-seed data depends on meal IDs) ──
     await prisma.mealIngredient.deleteMany()
+    await prisma.mealPlanSnack.deleteMany()
     await prisma.mealPlan.deleteMany()
     await prisma.meal.deleteMany()
-    await prisma.templateExercise.deleteMany()
-    await prisma.workoutTemplate.deleteMany()
-    await prisma.exercise.deleteMany()
 
-    // Exercises
-    await prisma.exercise.createMany({ data: exerciseData })
-    const dbExercises = await prisma.exercise.findMany()
-    const byName = (name: string) => {
-      const ex = dbExercises.find(e => e.name === name)
-      if (!ex) throw new Error(`Exercise not found: ${name}`)
-      return ex
-    }
-    console.log(`  ✓ ${dbExercises.length} exercises`)
-
-    // Templates + template exercises
-    for (const template of templateData) {
-      await prisma.workoutTemplate.create({
-        data: {
-          name: template.name,
-          isActive: true,
-          templateExercises: {
-            create: template.exercises.map((ex, i) => ({
-              exerciseId: byName(ex.name).id,
-              order: i + 1,
-              targetSets: ex.sets,
-            })),
-          },
-        },
+    // ── Exercises: upsert by name via raw SQL ────────────────────────────────────
+    // Prisma's libSQL adapter can't handle the @map("is_priority") column in any
+    // write operation, so all exercise writes go through the raw HTTP client.
+    for (const ex of exerciseData) {
+      const isPriority = priorityExerciseNames.includes(ex.name) ? 1 : 0
+      const existing = await rawClient.execute({
+        sql: 'SELECT id FROM exercises WHERE name = ?',
+        args: [ex.name],
       })
+      if (existing.rows.length > 0) {
+        await rawClient.execute({
+          sql: `UPDATE exercises
+                SET muscleGroup=?, repRangeLow=?, repRangeHigh=?, incrementKg=?, is_priority=?
+                WHERE name=?`,
+          args: [ex.muscleGroup, ex.repRangeLow, ex.repRangeHigh, ex.incrementKg, isPriority, ex.name],
+        })
+      } else {
+        await rawClient.execute({
+          sql: `INSERT INTO exercises (name, muscleGroup, repRangeLow, repRangeHigh, incrementKg, is_priority)
+                VALUES (?, ?, ?, ?, ?, ?)`,
+          args: [ex.name, ex.muscleGroup, ex.repRangeLow, ex.repRangeHigh, ex.incrementKg, isPriority],
+        })
+      }
     }
-    console.log(`  ✓ ${templateData.length} workout templates`)
+
+    // Build name→id map for exercises via raw SQL (avoids the is_priority SELECT bug)
+    const allExRows = await rawClient.execute('SELECT id, name FROM exercises')
+    const exIdByName = new Map<string, number>(
+      allExRows.rows.map(r => [r.name as string, r.id as number])
+    )
+    const byName = (name: string) => {
+      const id = exIdByName.get(name)
+      if (id === undefined) throw new Error(`Exercise not found: ${name}`)
+      return id
+    }
+    console.log(`  ✓ ${allExRows.rows.length} exercises upserted (${priorityExerciseNames.length} priority)`)
+
+    // ── Templates: upsert by name, always rebuild template_exercises ─────────────
+    // template_exercises are not directly referenced by workouts so are safe to
+    // delete-and-recreate. workout_templates must NOT be deleted (workouts FK them).
+    for (const template of templateData) {
+      let templateId: number
+      const existing = await rawClient.execute({
+        sql: 'SELECT id FROM workout_templates WHERE name = ?',
+        args: [template.name],
+      })
+      if (existing.rows.length > 0) {
+        templateId = existing.rows[0].id as number
+        await rawClient.execute({
+          sql: 'UPDATE workout_templates SET isActive = 1 WHERE id = ?',
+          args: [templateId],
+        })
+      } else {
+        const result = await rawClient.execute({
+          sql: 'INSERT INTO workout_templates (name, isActive) VALUES (?, 1) RETURNING id',
+          args: [template.name],
+        })
+        templateId = result.rows[0].id as number
+      }
+      // Rebuild exercises for this template
+      await rawClient.execute({
+        sql: 'DELETE FROM template_exercises WHERE templateId = ?',
+        args: [templateId],
+      })
+      for (let i = 0; i < template.exercises.length; i++) {
+        const ex = template.exercises[i]
+        await rawClient.execute({
+          sql: 'INSERT INTO template_exercises (templateId, exerciseId, "order", targetSets) VALUES (?, ?, ?, ?)',
+          args: [templateId, byName(ex.name), i + 1, ex.sets],
+        })
+      }
+    }
+    console.log(`  ✓ ${templateData.length} workout templates upserted`)
 
     // Meals + ingredients
     for (const meal of mealData) {
@@ -546,6 +672,7 @@ async function main() {
 
     console.log('✅ Seed complete.')
   } finally {
+    rawClient.close()
     await prisma.$disconnect()
   }
 }

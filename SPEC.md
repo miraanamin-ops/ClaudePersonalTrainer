@@ -47,14 +47,67 @@ Daily selection logic:
 ## 5. Training plan
 
 Split (driven by days available):
-- 4 days: Upper / Lower / Upper / Lower
-- 3 days: Full Body A / Full Body B / Full Body A (alternating each week)
+- **4 days (primary):** Upper A / Lower A / Upper B / Lower B, repeating in sequence. Each muscle trained twice per week; A sessions emphasise horizontal push/pull, B sessions emphasise vertical push/pull. Both upper sessions include direct biceps, triceps, and calf work; both lower sessions include calves.
+- **3 days (fallback):** Full Body A / Full Body B / Full Body C, rotating each week. Use this only in weeks where 4 sessions are impossible — weekly per-muscle volume drops to ~6–10 sets (adequate to maintain, not optimise). Push back to 4-day whenever possible.
 
-Starting exercise selection (beginner, commercial gym; editable):
-- Upper: dumbbell chest press (user prefers this; does NOT like the barbell bench press), lat pulldown or row, shoulder press, bicep curl, tricep pushdown.
-- Lower: squat or leg press, Romanian deadlift or hamstring curl, leg extension, calf raise.
-- Full Body A: squat, dumbbell chest press, row, shoulder press.
-- Full Body B: deadlift or RDL, lat pulldown, leg press, incline press.
+User does NOT like the barbell bench press; dumbbell chest press is the horizontal push staple.
+
+Exercise selection (returning intermediate, commercial gym; editable):
+
+**Upper A — Horizontal push/pull:**
+- DB Chest Press (4 sets), Cable Fly (3 sets)
+- Seated Cable Row (4 sets)
+- Rear Delt Fly (2 sets), DB Lateral Raise (3 sets)
+- Bicep Curl (3 sets), Tricep Pushdown (3 sets)
+- Standing Calf Raise (3 sets)
+
+**Upper B — Vertical push/pull:**
+- Lat Pulldown (4 sets)
+- DB Overhead Press (4 sets), Incline DB Press (3 sets)
+- Face Pull (4 sets), DB Lateral Raise (3 sets)
+- Hammer Curl (3 sets), Overhead Tricep Extension (3 sets)
+- Seated Calf Raise (3 sets)
+
+**Lower A — Quad-dominant:**
+- Squat (4 sets), Leg Extension (3 sets)
+- Romanian Deadlift (3 sets), Leg Curl (3 sets)
+- Standing Calf Raise (4 sets)
+
+**Lower B — Hip-dominant:**
+- Romanian Deadlift (4 sets), Lying Leg Curl (4 sets)
+- Leg Press (3 sets), Leg Extension (2 sets)
+- Seated Calf Raise (4 sets)
+
+**Full Body A (fallback):**
+- Squat (4 sets), DB Chest Press (3 sets), Seated Cable Row (3 sets)
+- DB Lateral Raise (2 sets), Bicep Curl (2 sets), Tricep Pushdown (2 sets)
+- Standing Calf Raise (3 sets)
+
+**Full Body B (fallback):**
+- Romanian Deadlift (4 sets), Lat Pulldown (3 sets), DB Overhead Press (3 sets)
+- Leg Extension (2 sets), Leg Curl (3 sets)
+- Hammer Curl (2 sets), Overhead Tricep Extension (2 sets)
+- Seated Calf Raise (3 sets)
+
+**Full Body C (fallback):**
+- Leg Press (3 sets), Incline DB Press (3 sets), Dumbbell Row (3 sets)
+- Face Pull (3 sets), Lying Leg Curl (3 sets)
+- Bicep Curl (2 sets), Tricep Pushdown (2 sets)
+- Standing Calf Raise (3 sets)
+
+Approximate weekly set totals — 4-day mode (opening block; climbs via mesocycle volume progression):
+
+| Muscle group | Weekly direct sets | Notes |
+|---|---|---|
+| Chest | ~10 | UA 7 + UB 3 |
+| Back (all pull patterns) | ~11 | UA 4 rows + UB 4 pulldown + 4 face pull |
+| Rear delts | ~6 | UA 2 fly + UB 4 face pull |
+| Medial delts | ~6 direct | UA 3 + UB 3 lateral raises |
+| Biceps | ~6 direct (~14 effective) | +rows and pulldown secondary |
+| Triceps | ~6 direct (~15 effective) | +all pressing secondary |
+| Quads | ~12 | LA 7 + LB 5 |
+| Hamstrings | ~14 | LA 6 + LB 8 |
+| Calves | ~14 | all 4 sessions: 3+4+3+4 |
 
 ### Progression model: autoregulated double progression inside a periodised mesocycle
 This is more sophisticated than plain double progression on purpose. Volume is the main driver of hypertrophy, and matching effort to daily readiness via RIR gives the right stimulus without excess fatigue.
@@ -73,7 +126,9 @@ Across a mesocycle (4 to 6 weeks) — this is the "push harder" mechanism:
 - Then a DELOAD week: cut volume by ~50% and keep effort easy (~4 RIR) to shed fatigue.
 - The next block restarts from a slightly higher baseline (more load/reps than the previous block started at). This is what makes the app push me harder and harder over time, sustainably.
 
-Beginner ramp (important): for the first 1 to 2 blocks, keep it simple. Conservative loads, focus on technique, double progression only, moderate volume. The app introduces full periodisation and volume progression once a baseline of consistent logging exists.
+Opening recalibration block (Block 1, ~4 weeks): start at conservative loads (~60–70% of estimated working max) to re-establish accurate baselines after a layoff. The double progression engine and full RIR logic apply from day one — this is calibration, not coddling. RIR targets: Week 1 → 3 RIR, Week 2 → 2 RIR, Week 3 → 1 RIR, Week 4 → deload at ~4 RIR. Volume stays at the opening-week set counts in the templates above.
+
+From Block 2 onward: full periodisation with no ceiling — volume climbs week-on-week, sets added to priority muscle groups, effort approaches failure in the final week, then deload and restart at a higher baseline. This is what drives sustained progress over time.
 
 ## 6. Recovery (part of training, not separate)
 
