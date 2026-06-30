@@ -240,6 +240,24 @@ async function main() {
   `)
   console.log('  · creatine_log table ensured')
 
+  // -------------------------------------------------------------------------
+  // Conditioning / Hyrox-style sessions (logged separately from the progression
+  // engine — never touches workout_sets or the double-progression history)
+  // -------------------------------------------------------------------------
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS conditioning_sessions (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      date         DATETIME NOT NULL,
+      title        TEXT NOT NULL,
+      format       TEXT NOT NULL,
+      prescription TEXT NOT NULL,
+      result_type  TEXT NOT NULL,
+      result_text  TEXT,
+      note         TEXT
+    )
+  `)
+  console.log('  · conditioning_sessions table ensured')
+
   const suppExisting = await client.execute('SELECT COUNT(*) as n FROM supplement_settings')
   const suppCount = Number((suppExisting.rows[0] as unknown as { n: number }).n)
   if (suppCount === 0) {

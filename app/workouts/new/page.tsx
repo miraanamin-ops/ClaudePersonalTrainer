@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getActiveMesocycle, isMesocycleComplete } from '@/lib/prescriptions'
+import { getConditioningStatus } from '@/lib/conditioningStatus'
+import { startConditioning } from '@/app/conditioning/actions'
 import TemplateSelector from '@/components/TemplateSelector'
 import Link from 'next/link'
 
@@ -59,6 +61,8 @@ export default async function NewWorkoutPage() {
   const isDeload = meso.currentWeek > meso.lengthWeeks
   const weekLabel = isDeload ? 'Deload week' : `Week ${meso.currentWeek} of ${meso.lengthWeeks}`
 
+  const conditioning = await getConditioningStatus()
+
   return (
     <main className="min-h-screen pb-24 px-margin-mobile pt-6 max-w-md mx-auto">
       <h1 className="text-headline-lg-mobile text-on-surface mb-xs">Start Workout</h1>
@@ -72,6 +76,42 @@ export default async function NewWorkoutPage() {
         </span>
         <span className="text-body-sm text-secondary">Block {meso.blockNumber} · {weekLabel}</span>
       </div>
+
+      {/* Conditioning is due — surfaced as next-up, on top of the lifting rotation */}
+      {conditioning.due && (
+        <div className="mb-xl">
+          <p className="text-label-caps text-secondary mb-sm">CONDITIONING DUE</p>
+          <form action={startConditioning}>
+            <button
+              type="submit"
+              className="w-full bg-[#0a1c00] border border-primary-container/40 rounded-xl p-lg text-left active:scale-[0.98] transition-all"
+            >
+              <div className="flex items-center justify-between gap-md">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-xs">
+                    <span className="material-symbols-outlined text-primary-container text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                    <span className="text-label-caps text-primary-container">{conditioning.wod.format}</span>
+                  </div>
+                  <p className="text-headline-lg-mobile text-primary-container">{conditioning.wod.title}</p>
+                  <p className="text-body-sm text-secondary mt-xs">
+                    {conditioning.wod.prescription.slice(0, 3).join(' · ')}
+                    {conditioning.wod.prescription.length > 3 ? ' …' : ''}
+                  </p>
+                </div>
+                <span
+                  className="material-symbols-outlined text-primary-container shrink-0"
+                  style={{ fontSize: 48, fontVariationSettings: "'FILL' 1" }}
+                >
+                  play_circle
+                </span>
+              </div>
+            </button>
+          </form>
+          <p className="text-[11px] text-secondary mt-sm">
+            {conditioning.liftsSinceLast} lifts since your last conditioning session · or train as normal below
+          </p>
+        </div>
+      )}
 
       <TemplateSelector templates={templates} recommendedId={recommendedId} />
     </main>

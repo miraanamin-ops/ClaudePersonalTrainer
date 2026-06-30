@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { getActiveMesocycle } from '@/lib/prescriptions'
+import { getConditioningStatus } from '@/lib/conditioningStatus'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -29,7 +30,7 @@ function greetingText() {
 }
 
 export default async function Home() {
-  const [templates, meso, lastWorkout, todayReadiness] = await Promise.all([
+  const [templates, meso, lastWorkout, todayReadiness, conditioning] = await Promise.all([
     prisma.workoutTemplate.findMany({ orderBy: { id: 'asc' } }),
     getActiveMesocycle(),
     prisma.workout.findFirst({
@@ -42,6 +43,7 @@ export default async function Home() {
     prisma.readiness.findFirst({
       where: { date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
     }),
+    getConditioningStatus(),
   ])
 
   const exerciseCount = new Set(lastWorkout?.workoutSets.map(s => s.exerciseId) ?? []).size
@@ -91,6 +93,26 @@ export default async function Home() {
             ))}
           </div>
         </section>
+      )}
+
+      {/* Conditioning due banner */}
+      {conditioning.due && (
+        <Link
+          href="/workouts/new"
+          className="block bg-[#0a1c00] border border-primary-container/40 rounded-xl p-md mb-md active:scale-[0.98] transition-transform"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary-container/15 flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-primary-container text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-label-caps text-primary-container block mb-0.5">CONDITIONING DUE</span>
+              <p className="text-headline-md text-on-surface truncate">{conditioning.wod.title}</p>
+              <p className="text-body-sm text-secondary mt-0.5">{conditioning.wod.format} · auto-programmed</p>
+            </div>
+            <span className="material-symbols-outlined text-primary-container shrink-0">chevron_right</span>
+          </div>
+        </Link>
       )}
 
       {/* Start workout CTA */}

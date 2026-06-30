@@ -44,6 +44,7 @@ const ACT_LABEL: Record<string, string> = {
 type WorkoutRow = Awaited<ReturnType<typeof getWorkouts>>[number]
 type ActivityRow = Awaited<ReturnType<typeof getActivities>>[number]
 type TripRow = Awaited<ReturnType<typeof getTrips>>[number]
+type ConditioningRow = Awaited<ReturnType<typeof getConditioning>>[number]
 
 function getWorkouts() {
   return prisma.workout.findMany({
@@ -63,9 +64,14 @@ function getTrips() {
   return prisma.gymTrip.findMany({ orderBy: { date: 'desc' } })
 }
 
+function getConditioning() {
+  return prisma.conditioningSession.findMany({ orderBy: { date: 'desc' } })
+}
+
 type FeedItem =
   | { kind: 'workout'; date: Date; w: WorkoutRow }
   | { kind: 'activity'; date: Date; a: ActivityRow }
+  | { kind: 'conditioning'; date: Date; c: ConditioningRow }
 
 function buildChartData(trips: TripRow[], activities: ActivityRow[]): ActivityChartPoint[] {
   const tripPoints = trips.map(t => {
@@ -109,10 +115,11 @@ function buildChartData(trips: TripRow[], activities: ActivityRow[]): ActivityCh
 }
 
 export default async function WorkoutsPage() {
-  const [workouts, activities, trips] = await Promise.all([
+  const [workouts, activities, trips, conditioning] = await Promise.all([
     getWorkouts(),
     getActivities(),
     getTrips(),
+    getConditioning(),
   ])
 
   const chartData = buildChartData(trips, activities)
@@ -120,6 +127,7 @@ export default async function WorkoutsPage() {
   const feed: FeedItem[] = [
     ...workouts.map((w): FeedItem => ({ kind: 'workout', date: w.date, w })),
     ...activities.map((a): FeedItem => ({ kind: 'activity', date: a.date, a })),
+    ...conditioning.map((c): FeedItem => ({ kind: 'conditioning', date: c.date, c })),
   ].sort((x, y) => y.date.getTime() - x.date.getTime())
 
   return (
@@ -175,6 +183,35 @@ export default async function WorkoutsPage() {
                     </div>
                   </Link>
                   <DeleteWorkoutButton workoutId={w.id} variant="delete" />
+                </li>
+              )
+            }
+
+            if (item.kind === 'conditioning') {
+              const c = item.c
+              return (
+                <li key={`c-${c.id}`} className="flex items-center gap-sm">
+                  <Link
+                    href={`/conditioning/${c.id}`}
+                    className="flex-1 flex items-center justify-between bg-surface-container border border-surface-container-highest rounded-xl p-md active:bg-surface-container-high transition-colors min-w-0"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-primary-container text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-body-lg font-semibold text-on-surface truncate">{c.title}</p>
+                        <p className="text-body-sm text-secondary mt-0.5">{fmtDate(c.date)} · {c.format}</p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 ml-4">
+                      {c.resultText ? (
+                        <p className="text-headline-md text-primary-container">{c.resultText}</p>
+                      ) : (
+                        <span className="material-symbols-outlined text-secondary text-[20px]">chevron_right</span>
+                      )}
+                    </div>
+                  </Link>
                 </li>
               )
             }

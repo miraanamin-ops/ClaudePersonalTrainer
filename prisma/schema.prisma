@@ -229,6 +229,19 @@ model Activity {
   @@map("activities")
 }
 
+model ConditioningSession {
+  id           Int      @id @default(autoincrement())
+  date         DateTime
+  title        String
+  format       String
+  prescription String
+  resultType   String   @map("result_type")
+  resultText   String?  @map("result_text")
+  note         String?
+
+  @@map("conditioning_sessions")
+}
+
 model GymTrip {
   id                  Int      @id @default(autoincrement())
   date                DateTime
