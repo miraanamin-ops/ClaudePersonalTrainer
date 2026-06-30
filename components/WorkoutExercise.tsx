@@ -181,11 +181,41 @@ export default function WorkoutExercise({ workoutId, exercise, targetSets, presc
             <span className="text-headline-md text-on-surface">{targetSets} sets</span>
             <span className="text-secondary">×</span>
             <span className="text-headline-md text-on-surface">
-              {exercise.repRangeLow}–{exercise.repRangeHigh} reps
+              {prescription.action === 'first'
+                ? `${exercise.repRangeLow}–${exercise.repRangeHigh} reps`
+                : `${prescription.targetReps}+ reps`}
             </span>
             <span className="text-label-caps text-secondary">@ RIR {prescription.targetRIR}</span>
           </div>
           <p className="text-body-sm text-secondary mt-xs leading-snug">{prescription.note}</p>
+        </div>
+      )}
+
+      {/* Per-set game plan — exactly what to do for each remaining set */}
+      {prescription && !showFirstTimePrompt && prescription.action !== 'first'
+        && prescription.targetWeightKg != null && loggedSets.length < targetSets && (
+        <div className="mx-md mb-sm rounded-lg overflow-hidden border border-surface-container-highest">
+          <div className="grid grid-cols-[2.5rem_1fr_1fr_3rem] gap-x-2 px-sm py-xs text-label-caps text-secondary bg-surface-container-high">
+            <span>SET</span><span>WEIGHT</span><span>GOAL</span><span className="text-right">LAST</span>
+          </div>
+          {Array.from({ length: targetSets - loggedSets.length }, (_, k) => {
+            const setNumber = loggedSets.length + k + 1
+            const lastReps = prescription.lastWorkingSets[setNumber - 1]?.reps ?? null
+            const isNext = k === 0
+            return (
+              <div
+                key={setNumber}
+                className={`grid grid-cols-[2.5rem_1fr_1fr_3rem] gap-x-2 items-center px-sm py-xs text-body-sm border-t border-surface-container-highest ${
+                  isNext ? 'bg-primary-container/10' : ''
+                }`}
+              >
+                <span className="text-secondary">{setNumber}</span>
+                <span className="font-semibold text-on-surface">{prescription.targetWeightKg} kg</span>
+                <span className="font-semibold text-on-surface">{prescription.targetReps}+ reps</span>
+                <span className="text-secondary text-right">{lastReps != null ? lastReps : '—'}</span>
+              </div>
+            )
+          })}
         </div>
       )}
 

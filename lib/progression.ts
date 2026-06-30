@@ -28,6 +28,7 @@ export type Prescription = {
   earlyDeloadWarning: boolean
   isDeload: boolean
   action: 'first' | 'increase' | 'hold' | 'deload'
+  lastWorkingSets: SetRecord[]  // last session's sets at the working weight (empty if first session)
 }
 
 export function getWeeklyTargetRIR(
@@ -76,14 +77,19 @@ export function prescribeExercise(
       earlyDeloadWarning: false,
       isDeload,
       action: 'first',
+      lastWorkingSets: [],
     }
   }
 
-  const lastWeight = lastSets[0].weightKg
+  // Working weight = the heaviest load carried for at least one set. Lighter sets
+  // (ramp-up / feeler / warm-up) are ignored when judging progression, so a session
+  // logged as 14→18→20→20 is read as "20 kg", not "14 kg" (the first set).
+  const workingWeight = Math.max(...lastSets.map(s => s.weightKg))
+  const workingSets = lastSets.filter(s => s.weightKg >= workingWeight - 1e-6)
 
   if (isDeload) {
     return {
-      targetWeightKg: lastWeight,
+      targetWeightKg: workingWeight,
       targetReps: exercise.repRangeLow,
       targetRIR: 4,
       baseRIR: 4,
@@ -92,18 +98,19 @@ export function prescribeExercise(
       earlyDeloadWarning: false,
       isDeload: true,
       action: 'deload',
+      lastWorkingSets: workingSets,
     }
   }
 
-  const avgRIR = lastSets.reduce((sum, s) => sum + s.rir, 0) / lastSets.length
+  const avgRIR = workingSets.reduce((sum, s) => sum + s.rir, 0) / workingSets.length
   // Progression decision uses baseRIR — what last session was measured against
   const rirDiff = avgRIR - baseRIR
-  const allAtTop = lastSets.every(s => s.reps >= exercise.repRangeHigh)
-  const bestReps = Math.max(...lastSets.map(s => s.reps))
+  const allAtTop = workingSets.every(s => s.reps >= exercise.repRangeHigh)
+  const bestReps = Math.max(...workingSets.map(s => s.reps))
 
   if (rirDiff >= 3) {
     return {
-      targetWeightKg: lastWeight + 2 * exercise.incrementKg,
+      targetWeightKg: workingWeight + 2 * exercise.incrementKg,
       targetReps: exercise.repRangeLow,
       targetRIR,
       baseRIR,
@@ -112,12 +119,13 @@ export function prescribeExercise(
       earlyDeloadWarning: false,
       isDeload: false,
       action: 'increase',
+      lastWorkingSets: workingSets,
     }
   }
 
   if (rirDiff >= 1) {
     return {
-      targetWeightKg: lastWeight + exercise.incrementKg,
+      targetWeightKg: workingWeight + exercise.incrementKg,
       targetReps: exercise.repRangeLow,
       targetRIR,
       baseRIR,
@@ -126,12 +134,13 @@ export function prescribeExercise(
       earlyDeloadWarning: false,
       isDeload: false,
       action: 'increase',
+      lastWorkingSets: workingSets,
     }
   }
 
   if (rirDiff < -1.5) {
     return {
-      targetWeightKg: lastWeight,
+      targetWeightKg: workingWeight,
       targetReps: Math.max(bestReps, exercise.repRangeLow),
       targetRIR,
       baseRIR,
@@ -140,26 +149,28 @@ export function prescribeExercise(
       earlyDeloadWarning: true,
       isDeload: false,
       action: 'hold',
+      lastWorkingSets: workingSets,
     }
   }
 
   if (allAtTop) {
     return {
-      targetWeightKg: lastWeight + exercise.incrementKg,
+      targetWeightKg: workingWeight + exercise.incrementKg,
       targetReps: exercise.repRangeLow,
       targetRIR,
       baseRIR,
       targetSets,
-      note: `Weight up — you hit ${exercise.repRangeHigh} reps across all sets`,
+      note: `Weight up — you hit ${exercise.repRangeHigh} reps across all working sets`,
       earlyDeloadWarning: false,
       isDeload: false,
       action: 'increase',
+      lastWorkingSets: workingSets,
     }
   }
 
   const nextReps = Math.min(bestReps + 1, exercise.repRangeHigh)
   return {
-    targetWeightKg: lastWeight,
+    targetWeightKg: workingWeight,
     targetReps: nextReps,
     targetRIR,
     baseRIR,
@@ -168,5 +179,6 @@ export function prescribeExercise(
     earlyDeloadWarning: false,
     isDeload: false,
     action: 'hold',
+    lastWorkingSets: workingSets,
   }
 }
