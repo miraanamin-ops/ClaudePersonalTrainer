@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { deleteTrip } from '@/app/activity/actions'
+import { deleteActivity } from '@/app/workouts/actions'
 
-export default function DeleteTripButton({ tripId }: { tripId: number }) {
+export default function DeleteActivityButton({ activityId }: { activityId: number }) {
   const [confirming, setConfirming] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -11,7 +11,7 @@ export default function DeleteTripButton({ tripId }: { tripId: number }) {
     return (
       <div className="flex items-center gap-sm shrink-0">
         <button
-          onClick={() => startTransition(() => deleteTrip(tripId))}
+          onClick={() => startTransition(() => deleteActivity(activityId))}
           disabled={isPending}
           className="text-error text-label-caps font-bold disabled:opacity-50 active:scale-95 transition-all"
         >
@@ -30,8 +30,8 @@ export default function DeleteTripButton({ tripId }: { tripId: number }) {
   return (
     <button
       onClick={() => setConfirming(true)}
-      className="w-8 h-8 rounded-full flex items-center justify-center text-secondary hover:text-error hover:bg-surface-container-high transition-colors shrink-0"
-      aria-label="Delete trip"
+      className="w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:text-error hover:bg-surface-container-high transition-colors shrink-0"
+      aria-label="Delete activity"
     >
       <span className="material-symbols-outlined text-[18px]">delete</span>
     </button>

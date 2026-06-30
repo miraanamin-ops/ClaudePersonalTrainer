@@ -75,11 +75,42 @@ export async function saveWorkoutTrip(workoutId: number, data: WorkoutTripInput)
     await prisma.gymTrip.create({ data: payload })
   }
   revalidatePath(`/workouts/${workoutId}`)
-  revalidatePath('/activity')
+  revalidatePath('/workouts')
 }
 
 export async function deleteWorkoutTrip(workoutId: number) {
   await prisma.gymTrip.deleteMany({ where: { workoutId } })
   revalidatePath(`/workouts/${workoutId}`)
-  revalidatePath('/activity')
+  revalidatePath('/workouts')
+}
+
+export type ActivityInput = {
+  dateISO: string
+  type: string
+  distKm: number | null
+  durMin: number | null
+  calories: number | null
+  note: string | null
+}
+
+// Logs a standalone cardio activity (a run/walk/cycle/swim done outside of a
+// gym session). Appears in the unified Workouts list and feeds the cardio charts.
+export async function createActivity(data: ActivityInput) {
+  const date = new Date(data.dateISO)
+  await prisma.activity.create({
+    data: {
+      date: isNaN(date.getTime()) ? new Date() : date,
+      type: data.type,
+      distKm: data.distKm,
+      durMin: data.durMin,
+      calories: data.calories,
+      note: data.note,
+    },
+  })
+  revalidatePath('/workouts')
+}
+
+export async function deleteActivity(id: number) {
+  await prisma.activity.delete({ where: { id } })
+  revalidatePath('/workouts')
 }

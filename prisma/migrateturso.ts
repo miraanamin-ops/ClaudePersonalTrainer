@@ -193,6 +193,22 @@ async function main() {
   console.log('  · gym_trips table ensured')
 
   // -------------------------------------------------------------------------
+  // Standalone activities: runs/walks/cycles/swims logged outside the gym
+  // -------------------------------------------------------------------------
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS activities (
+      id       INTEGER PRIMARY KEY AUTOINCREMENT,
+      date     DATETIME NOT NULL,
+      type     TEXT NOT NULL,
+      dist_km  REAL,
+      dur_min  REAL,
+      calories INTEGER,
+      note     TEXT
+    )
+  `)
+  console.log('  · activities table ensured')
+
+  // -------------------------------------------------------------------------
   // Daily targets: water intake + creatine supplement
   // -------------------------------------------------------------------------
   await client.execute(`

@@ -217,6 +217,18 @@ model CreatineLog {
   @@map("creatine_log")
 }
 
+model Activity {
+  id       Int      @id @default(autoincrement())
+  date     DateTime
+  type     String   // run | walk | cycle | swim | other
+  distKm   Float?   @map("dist_km")
+  durMin   Float?   @map("dur_min")
+  calories Int?
+  note     String?
+
+  @@map("activities")
+}
+
 model GymTrip {
   id                  Int      @id @default(autoincrement())
   date                DateTime
