@@ -191,6 +191,32 @@ model NutritionTarget {
   @@map("nutrition_targets")
 }
 
+model SupplementSetting {
+  id             Int      @id @default(autoincrement())
+  waterTargetMl  Int      @default(2000) @map("water_target_ml")
+  waterServingMl Int      @default(500)  @map("water_serving_ml")
+  creatineDoseG  Float    @default(5)    @map("creatine_dose_g")
+  updatedAt      DateTime @updatedAt     @map("updated_at")
+
+  @@map("supplement_settings")
+}
+
+model WaterIntake {
+  id            Int      @id @default(autoincrement())
+  date          DateTime
+  completedMask Int      @default(0) @map("completed_mask")
+
+  @@map("water_intake")
+}
+
+model CreatineLog {
+  id    Int      @id @default(autoincrement())
+  date  DateTime
+  taken Boolean  @default(false)
+
+  @@map("creatine_log")
+}
+
 model GymTrip {
   id                  Int      @id @default(autoincrement())
   date                DateTime

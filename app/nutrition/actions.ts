@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { selectMeals, dateRange, refitDay } from '@/lib/nutrition'
+import { getOrCreateTodaysWater, getOrCreateTodaysCreatine } from '@/lib/supplements'
 import { revalidatePath } from 'next/cache'
 
 async function yesterdaysDinnerId(): Promise<number | null> {
@@ -182,5 +183,33 @@ export async function logOffPlanMeal(description: string, kcal: number, proteinG
     data: { date: new Date(), description, kcal, proteinG, fatG, carbsG },
   })
   await refitDay(new Date())
+  revalidatePath('/nutrition')
+}
+
+// ---------------------------------------------------------------------------
+// Water + creatine (daily, auto-resets via per-day record)
+// ---------------------------------------------------------------------------
+
+export async function toggleWaterSlot(slotIndex: number, done: boolean) {
+  const record = await getOrCreateTodaysWater()
+  const bit = 1 << slotIndex
+  const mask = done ? record.completedMask | bit : record.completedMask & ~bit
+  await prisma.waterIntake.update({ where: { id: record.id }, data: { completedMask: mask } })
+  revalidatePath('/nutrition')
+}
+
+export async function toggleCreatine(taken: boolean) {
+  const record = await getOrCreateTodaysCreatine()
+  await prisma.creatineLog.update({ where: { id: record.id }, data: { taken } })
+  revalidatePath('/nutrition')
+}
+
+export async function saveSupplementTargets(waterTargetMl: number, creatineDoseG: number) {
+  const existing = await prisma.supplementSetting.findFirst({ orderBy: { id: 'desc' } })
+  if (existing) {
+    await prisma.supplementSetting.update({ where: { id: existing.id }, data: { waterTargetMl, creatineDoseG } })
+  } else {
+    await prisma.supplementSetting.create({ data: { waterTargetMl, creatineDoseG } })
+  }
   revalidatePath('/nutrition')
 }

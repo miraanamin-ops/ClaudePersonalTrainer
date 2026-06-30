@@ -7,17 +7,26 @@ import RegenerateButton from '@/components/RegenerateButton'
 import OffPlanLogger from '@/components/OffPlanLogger'
 import LunchEatenToggle from '@/components/LunchEatenToggle'
 import SnackCard from '@/components/SnackCard'
+import WaterTracker from '@/components/WaterTracker'
+import CreatineCard from '@/components/CreatineCard'
+import SupplementTargetsForm from '@/components/SupplementTargetsForm'
+import { getSupplementSettings, getOrCreateTodaysWater, getOrCreateTodaysCreatine, waterSchedule } from '@/lib/supplements'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
 export default async function NutritionPage() {
-  const [plan, targets] = await Promise.all([
+  const [plan, targets, suppSettings, water, creatine] = await Promise.all([
     getOrCreateTodaysPlan(),
     getTargets(),
+    getSupplementSettings(),
+    getOrCreateTodaysWater(),
+    getOrCreateTodaysCreatine(),
   ])
 
   if (!plan) return null
+
+  const waterSlots = waterSchedule(suppSettings.waterTargetMl, suppSettings.waterServingMl)
 
   // Yesterday's dinner = today's lunch carry-forward
   const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1)
@@ -196,12 +205,28 @@ export default async function NutritionPage() {
           </div>
         )}
 
+        {/* Creatine supplement */}
+        <CreatineCard doseG={suppSettings.creatineDoseG} taken={creatine.taken} />
+
+        {/* Water intake */}
+        <WaterTracker
+          slots={waterSlots}
+          completedMask={water.completedMask}
+          targetMl={suppSettings.waterTargetMl}
+        />
+
         {/* Off-plan meals logger */}
         <OffPlanLogger existing={offPlanMeals} />
       </div>
 
       {/* Targets */}
-      <TargetsForm targets={targets} />
+      <div className="space-y-md">
+        <TargetsForm targets={targets} />
+        <SupplementTargetsForm
+          waterTargetMl={suppSettings.waterTargetMl}
+          creatineDoseG={suppSettings.creatineDoseG}
+        />
+      </div>
     </main>
   )
 }

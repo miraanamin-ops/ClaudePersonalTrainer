@@ -192,6 +192,47 @@ async function main() {
   `)
   console.log('  · gym_trips table ensured')
 
+  // -------------------------------------------------------------------------
+  // Daily targets: water intake + creatine supplement
+  // -------------------------------------------------------------------------
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS supplement_settings (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      water_target_ml  INTEGER NOT NULL DEFAULT 2000,
+      water_serving_ml INTEGER NOT NULL DEFAULT 500,
+      creatine_dose_g  REAL NOT NULL DEFAULT 5,
+      updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+  console.log('  · supplement_settings table ensured')
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS water_intake (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      date           DATETIME NOT NULL,
+      completed_mask INTEGER NOT NULL DEFAULT 0
+    )
+  `)
+  console.log('  · water_intake table ensured')
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS creatine_log (
+      id    INTEGER PRIMARY KEY AUTOINCREMENT,
+      date  DATETIME NOT NULL,
+      taken INTEGER NOT NULL DEFAULT 0
+    )
+  `)
+  console.log('  · creatine_log table ensured')
+
+  const suppExisting = await client.execute('SELECT COUNT(*) as n FROM supplement_settings')
+  const suppCount = Number((suppExisting.rows[0] as unknown as { n: number }).n)
+  if (suppCount === 0) {
+    await client.execute('INSERT INTO supplement_settings (water_target_ml, water_serving_ml, creatine_dose_g) VALUES (2000, 500, 5)')
+    console.log('  ✓ default supplement settings seeded')
+  } else {
+    console.log('  · supplement settings already set')
+  }
+
   client.close()
   console.log('Done.')
 }
