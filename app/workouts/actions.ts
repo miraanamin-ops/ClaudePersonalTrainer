@@ -41,7 +41,45 @@ export async function deleteSet(setId: number, workoutId: number) {
 }
 
 export async function deleteWorkout(workoutId: number) {
+  await prisma.gymTrip.deleteMany({ where: { workoutId } })
   await prisma.workoutSet.deleteMany({ where: { workoutId } })
   await prisma.workout.delete({ where: { id: workoutId } })
   redirect('/workouts')
+}
+
+export type WorkoutTripInput = {
+  travelToMode: string
+  travelToCalories: number | null
+  travelToDistKm: number | null
+  travelToDurMin: number | null
+  travelFromMode: string
+  travelFromCalories: number | null
+  travelFromDistKm: number | null
+  travelFromDurMin: number | null
+  workoutCalories: number | null
+}
+
+// Logs (or updates) the gym commute + cardio for a specific workout. The trip is
+// linked to the workout and dated to the workout's date, so it shows up in the
+// Activity history/charts but is captured in-session rather than as a loose entry.
+export async function saveWorkoutTrip(workoutId: number, data: WorkoutTripInput) {
+  const workout = await prisma.workout.findUnique({ where: { id: workoutId }, select: { date: true } })
+  if (!workout) return
+
+  const existing = await prisma.gymTrip.findFirst({ where: { workoutId } })
+  const payload = { date: workout.date, workoutId, ...data }
+
+  if (existing) {
+    await prisma.gymTrip.update({ where: { id: existing.id }, data: payload })
+  } else {
+    await prisma.gymTrip.create({ data: payload })
+  }
+  revalidatePath(`/workouts/${workoutId}`)
+  revalidatePath('/activity')
+}
+
+export async function deleteWorkoutTrip(workoutId: number) {
+  await prisma.gymTrip.deleteMany({ where: { workoutId } })
+  revalidatePath(`/workouts/${workoutId}`)
+  revalidatePath('/activity')
 }

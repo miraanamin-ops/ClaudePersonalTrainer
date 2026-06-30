@@ -40,8 +40,14 @@ export function categoryColour(category: ReadinessCategory): string {
   return 'text-red-400'
 }
 
-// Actionable nudges based on recent history
-export function readinessNudges(recent: ReadinessEntry[]): string[] {
+// Actionable nudges based on recent history.
+// proteinTargetG / proteinConsumedG come from the live nutrition data so the
+// protein nudge reflects the user's actual editable target and today's intake.
+export function readinessNudges(
+  recent: ReadinessEntry[],
+  proteinTargetG: number,
+  proteinConsumedG?: number,
+): string[] {
   const nudges: string[] = []
 
   // Sleep nudge: last 3 check-ins all < 7h
@@ -52,8 +58,18 @@ export function readinessNudges(recent: ReadinessEntry[]): string[] {
     )
   }
 
-  // Protein nudge (static until Phase 6 provides real meal data)
-  nudges.push('Protein: hit 180g today to protect muscle in a calorie deficit.')
+  // Protein nudge — driven by the real target and (if available) today's intake
+  const target = Math.round(proteinTargetG)
+  if (proteinConsumedG != null) {
+    const remaining = Math.max(0, Math.round(target - proteinConsumedG))
+    nudges.push(
+      remaining > 0
+        ? `Protein: ${remaining}g to go to hit your ${target}g target — protects muscle in a calorie deficit.`
+        : `Protein: ${target}g target hit — nice. Protein protects muscle in a calorie deficit.`,
+    )
+  } else {
+    nudges.push(`Protein: aim for ${target}g today to protect muscle in a calorie deficit.`)
+  }
 
   return nudges
 }

@@ -110,10 +110,11 @@ export async function selectMeals(opts: {
     }
   }
 
-  // Select snacks within the kcal budget, protein-dense first (max 2).
-  // Always attempts to add snacks regardless of whether the protein target is
-  // already met — this ensures snack ingredients always appear on the shopping
-  // list and gives the user something to eat/skip each day.
+  // Select snacks to fill the remaining kcal headroom up to (not over) target,
+  // protein-dense first (max 2). When breakfast/lunch/dinner already meet the
+  // target, no snacks are added — this keeps someone in a deficit from
+  // systematically overshooting. Snacks therefore only appear on days/weeks
+  // where there's genuine room for them.
   const base = add(add(fromMeal(bestB), fromMeal(bestD)), baseConsumed)
   const snackIds: number[] = []
 
@@ -123,7 +124,7 @@ export async function selectMeals(opts: {
   let runKcal = base.kcal
   for (const snack of sortedSnacks) {
     if (snackIds.length >= 2) break
-    if (runKcal + snack.kcal > targets.kcal * 1.15) continue
+    if (runKcal + snack.kcal > targets.kcal) continue
     snackIds.push(snack.id)
     runKcal += snack.kcal
   }
@@ -344,6 +345,38 @@ export async function getShoppingList(): Promise<ShoppingAisle[]> {
       aisle,
       items: items.sort((a, b) => a.name.localeCompare(b.name)),
     }))
+}
+
+// Today's protein target vs actually-consumed (eaten, non-skipped meals/snacks +
+// off-plan). Read-only — does not create a plan. Used by the recovery nudges.
+export async function getTodaysProteinProgress(): Promise<{ targetG: number; consumedG: number }> {
+  const targets = await getTargets()
+  const { start, end } = dateRange(new Date())
+
+  const plan = await prisma.mealPlan.findFirst({
+    where: { date: { gte: start, lte: end } },
+    include: planInclude,
+  })
+
+  const y = new Date(); y.setDate(y.getDate() - 1)
+  const { start: yS, end: yE } = dateRange(y)
+  const yPlan = await prisma.mealPlan.findFirst({
+    where: { date: { gte: yS, lte: yE } },
+    include: { dinnerMeal: true },
+  })
+
+  const offPlan = await prisma.offPlanMeal.findMany({ where: { date: { gte: start, lte: end } } })
+
+  let consumed = 0
+  if (plan) {
+    if (plan.breakfastEaten && !plan.breakfastSkipped) consumed += plan.breakfastMeal.proteinG
+    if (plan.lunchEaten     && !plan.lunchSkipped)     consumed += yPlan?.dinnerMeal?.proteinG ?? 0
+    if (plan.dinnerEaten    && !plan.dinnerSkipped)    consumed += plan.dinnerMeal.proteinG
+    consumed += plan.snacks.filter(s => s.eaten && !s.skipped).reduce((sum, s) => sum + s.meal.proteinG, 0)
+  }
+  consumed += offPlan.reduce((sum, m) => sum + m.proteinG, 0)
+
+  return { targetG: targets.proteinG, consumedG: consumed }
 }
 
 export async function getOrCreateTodaysPlan() {

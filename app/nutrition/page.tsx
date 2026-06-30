@@ -143,13 +143,15 @@ export default async function NutritionPage() {
         {/* Lunch — yesterday's dinner as leftover */}
         <div className="bg-surface-container border border-surface-container-highest rounded-xl p-md">
           <div className="flex items-center gap-2 mb-md">
-            <span className="material-symbols-outlined text-primary-container">wb_sunny</span>
-            <h3 className="text-headline-md text-on-surface">Lunch</h3>
-            <span className="text-[10px] text-secondary bg-surface-container-high px-2 py-0.5 rounded-full ml-auto">
+            <span className="material-symbols-outlined text-primary-container shrink-0">wb_sunny</span>
+            <h3 className="text-headline-md text-on-surface shrink-0">Lunch</h3>
+            <span className="text-[10px] text-secondary bg-surface-container-high px-2 py-0.5 rounded-full ml-auto shrink-0">
               yesterday&apos;s dinner
             </span>
             {lunch && (
-              <LunchEatenToggle eaten={plan.lunchEaten} skipped={plan.lunchSkipped} />
+              <div className="shrink-0">
+                <LunchEatenToggle eaten={plan.lunchEaten} skipped={plan.lunchSkipped} />
+              </div>
             )}
           </div>
           {lunch ? (

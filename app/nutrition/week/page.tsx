@@ -94,7 +94,7 @@ export default async function NutritionWeekPage() {
                     <span className="material-symbols-outlined text-secondary text-[16px]">wb_sunny</span>
                     <Link
                       href={`/nutrition/meals/${plan.breakfastMeal.id}`}
-                      className="text-body-sm text-on-surface truncate hover:text-primary-container active:opacity-70 transition-colors"
+                      className="text-body-sm text-on-surface truncate min-w-0 hover:text-primary-container active:opacity-70 transition-colors"
                     >
                       {plan.breakfastMeal.name}
                     </Link>
@@ -103,7 +103,7 @@ export default async function NutritionWeekPage() {
                     <span className="material-symbols-outlined text-secondary text-[16px]">bedtime</span>
                     <Link
                       href={`/nutrition/meals/${plan.dinnerMeal.id}`}
-                      className="text-body-sm text-on-surface truncate hover:text-primary-container active:opacity-70 transition-colors"
+                      className="text-body-sm text-on-surface truncate min-w-0 hover:text-primary-container active:opacity-70 transition-colors"
                     >
                       {plan.dinnerMeal.name}
                     </Link>

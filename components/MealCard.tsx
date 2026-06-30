@@ -1,6 +1,6 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useOptimistic, useTransition } from 'react'
 import Link from 'next/link'
 import { lockMeal, swapMeal, markMealEaten, skipMeal } from '@/app/nutrition/actions'
 
@@ -30,70 +30,102 @@ const slotIcons: Record<string, string> = {
 
 export default function MealCard({ label, meal, slot, locked, eaten, skipped, recipeScale = 1, icon }: Props) {
   const [isPending, startTransition] = useTransition()
+  const [state, setState] = useOptimistic(
+    { eaten, skipped, locked },
+    (_prev, next: { eaten: boolean; skipped: boolean; locked: boolean }) => next,
+  )
   const mealIcon = icon ?? slotIcons[label] ?? 'restaurant'
 
+  function toggleEaten() {
+    const next = { ...state, eaten: !state.eaten, skipped: false }
+    startTransition(async () => {
+      setState(next)
+      await markMealEaten(slot, next.eaten)
+    })
+  }
+
+  function toggleSkip() {
+    const next = { ...state, eaten: false, skipped: !state.skipped }
+    startTransition(async () => {
+      setState(next)
+      await skipMeal(slot, next.skipped)
+    })
+  }
+
+  function toggleLock() {
+    const next = { ...state, locked: !state.locked }
+    startTransition(async () => {
+      setState(next)
+      await lockMeal(slot, next.locked)
+    })
+  }
+
+  function handleSwap() {
+    startTransition(() => swapMeal(slot))
+  }
+
   return (
-    <div className={`bg-surface-container border border-surface-container-highest rounded-xl p-md transition-opacity ${isPending ? 'opacity-50' : ''} ${skipped ? 'opacity-50' : ''}`}>
-      <div className="flex justify-between items-start mb-md">
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary-container">{mealIcon}</span>
-          <h3 className={`text-headline-md text-on-surface ${skipped ? 'line-through text-secondary' : ''}`}>{label}</h3>
-          {eaten && !skipped && (
-            <span className="text-[10px] text-secondary bg-surface-container-high px-2 py-0.5 rounded-full">eaten</span>
+    <div className={`bg-surface-container border border-surface-container-highest rounded-xl p-md transition-opacity ${isPending ? 'opacity-50' : ''} ${state.skipped ? 'opacity-50' : ''}`}>
+      <div className="flex justify-between items-start gap-sm mb-md">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="material-symbols-outlined text-primary-container shrink-0">{mealIcon}</span>
+          <h3 className={`text-headline-md text-on-surface truncate ${state.skipped ? 'line-through text-secondary' : ''}`}>{label}</h3>
+          {state.eaten && !state.skipped && (
+            <span className="text-[10px] text-secondary bg-surface-container-high px-2 py-0.5 rounded-full shrink-0">eaten</span>
           )}
-          {skipped && (
-            <span className="text-[10px] text-secondary bg-surface-container-high px-2 py-0.5 rounded-full">skipped</span>
+          {state.skipped && (
+            <span className="text-[10px] text-secondary bg-surface-container-high px-2 py-0.5 rounded-full shrink-0">skipped</span>
           )}
         </div>
-        <div className="flex gap-xs">
+        <div className="flex gap-xs shrink-0">
           {/* Eaten */}
           <button
-            onClick={() => startTransition(() => markMealEaten(slot, !eaten))}
-            disabled={isPending || skipped}
-            title={eaten ? 'Mark as not eaten' : 'Mark as eaten'}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container transition-colors disabled:opacity-30"
+            onClick={toggleEaten}
+            disabled={isPending || state.skipped}
+            title={state.eaten ? 'Mark as not eaten' : 'Mark as eaten'}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container transition-colors disabled:opacity-30"
           >
-            <span className="material-symbols-outlined" style={eaten ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+            <span className="material-symbols-outlined text-[20px]" style={state.eaten ? { fontVariationSettings: "'FILL' 1" } : undefined}>
               check_circle
             </span>
           </button>
           {/* Skip */}
           <button
-            onClick={() => startTransition(() => skipMeal(slot, !skipped))}
-            disabled={isPending || eaten}
-            title={skipped ? 'Un-skip' : "Didn't eat this"}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container transition-colors disabled:opacity-30"
+            onClick={toggleSkip}
+            disabled={isPending || state.eaten}
+            title={state.skipped ? 'Un-skip' : "Didn't eat this"}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container transition-colors disabled:opacity-30"
           >
-            <span className="material-symbols-outlined" style={skipped ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+            <span className="material-symbols-outlined text-[20px]" style={state.skipped ? { fontVariationSettings: "'FILL' 1" } : undefined}>
               cancel
             </span>
           </button>
           {/* Lock */}
           <button
-            onClick={() => startTransition(() => lockMeal(slot, !locked))}
-            disabled={isPending || skipped}
-            title={locked ? 'Unlock' : 'Lock'}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container transition-colors disabled:opacity-30"
+            onClick={toggleLock}
+            disabled={isPending || state.skipped}
+            title={state.locked ? 'Unlock' : 'Lock'}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container transition-colors disabled:opacity-30"
           >
-            <span className="material-symbols-outlined" style={locked ? { fontVariationSettings: "'FILL' 1" } : undefined}>
-              {locked ? 'lock' : 'lock_open'}
+            <span className="material-symbols-outlined text-[20px]" style={state.locked ? { fontVariationSettings: "'FILL' 1" } : undefined}>
+              {state.locked ? 'lock' : 'lock_open'}
             </span>
           </button>
           {/* Swap */}
           <button
-            onClick={() => startTransition(() => swapMeal(slot))}
-            disabled={isPending || eaten || skipped}
+            onClick={handleSwap}
+            disabled={isPending || state.eaten || state.skipped}
             title="Swap meal"
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container active:rotate-180 transition-all disabled:opacity-30"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:text-primary-container active:rotate-180 transition-all disabled:opacity-30"
           >
-            <span className="material-symbols-outlined">refresh</span>
+            <span className="material-symbols-outlined text-[20px]">refresh</span>
           </button>
         </div>
       </div>
 
-      <div className={`flex gap-md items-start ${skipped ? 'opacity-50' : ''}`}>
-        <div className="flex-1">
-          <p className={`text-body-lg text-on-surface font-semibold ${skipped ? 'line-through' : ''}`}>{meal.name}</p>
+      <div className={`flex gap-md items-start ${state.skipped ? 'opacity-50' : ''}`}>
+        <div className="flex-1 min-w-0">
+          <p className={`text-body-lg text-on-surface font-semibold ${state.skipped ? 'line-through' : ''}`}>{meal.name}</p>
           <Link
             href={`/nutrition/meals/${meal.id}?scale=${recipeScale.toFixed(2)}`}
             className="flex items-center gap-0.5 text-[10px] text-secondary hover:text-primary-container transition-colors mt-0.5 w-fit"

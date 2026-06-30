@@ -1,6 +1,6 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useOptimistic, useTransition } from 'react'
 import { toggleWaterSlot } from '@/app/nutrition/actions'
 import type { WaterSlot } from '@/lib/supplements'
 
@@ -12,8 +12,9 @@ type Props = {
 
 export default function WaterTracker({ slots, completedMask, targetMl }: Props) {
   const [isPending, startTransition] = useTransition()
+  const [mask, setMask] = useOptimistic(completedMask, (_prev, next: number) => next)
 
-  const consumedMl = slots.reduce((sum, s) => sum + ((completedMask & (1 << s.index)) ? s.ml : 0), 0)
+  const consumedMl = slots.reduce((sum, s) => sum + ((mask & (1 << s.index)) ? s.ml : 0), 0)
   const pct = Math.min(consumedMl / Math.max(targetMl, 1), 1)
 
   return (
@@ -38,11 +39,19 @@ export default function WaterTracker({ slots, completedMask, targetMl }: Props) 
       {/* Schedule checklist */}
       <div className="space-y-sm">
         {slots.map(slot => {
-          const done = !!(completedMask & (1 << slot.index))
+          const bit = 1 << slot.index
+          const done = !!(mask & bit)
+          const toggle = () => {
+            const next = done ? mask & ~bit : mask | bit
+            startTransition(async () => {
+              setMask(next)
+              await toggleWaterSlot(slot.index, !done)
+            })
+          }
           return (
             <button
               key={slot.index}
-              onClick={() => startTransition(() => toggleWaterSlot(slot.index, !done))}
+              onClick={toggle}
               disabled={isPending}
               className={`w-full flex items-center gap-2 bg-surface-container-high p-sm rounded-lg transition-opacity disabled:opacity-50 ${done ? 'opacity-60' : ''}`}
             >

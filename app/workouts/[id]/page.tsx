@@ -3,6 +3,7 @@ import { getWorkoutPrescriptions } from '@/lib/prescriptions'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import WorkoutExercise from '@/components/WorkoutExercise'
+import WorkoutCommute from '@/components/WorkoutCommute'
 import DeleteWorkoutButton from '@/components/DeleteWorkoutButton'
 
 export const dynamic = 'force-dynamic'
@@ -31,12 +32,15 @@ export default async function WorkoutPage({ params }: Props) {
           },
         },
         workoutSets: { orderBy: { setNumber: 'asc' } },
+        gymTrips: true,
       },
     }),
     getWorkoutPrescriptions(workoutId),
   ])
 
   if (!workout) notFound()
+
+  const trip = workout.gymTrips[0] ?? null
 
   const totalExercises = workout.template.templateExercises.length
   const completedExercises = workout.template.templateExercises.filter(te => {
@@ -110,6 +114,22 @@ export default async function WorkoutPage({ params }: Props) {
             />
           )
         })}
+
+        {/* Commute & cardio — captured in-session, before tapping DONE */}
+        <WorkoutCommute
+          workoutId={workout.id}
+          trip={trip && {
+            travelToMode:       trip.travelToMode,
+            travelToCalories:   trip.travelToCalories,
+            travelToDistKm:     trip.travelToDistKm,
+            travelToDurMin:     trip.travelToDurMin,
+            travelFromMode:     trip.travelFromMode,
+            travelFromCalories: trip.travelFromCalories,
+            travelFromDistKm:   trip.travelFromDistKm,
+            travelFromDurMin:   trip.travelFromDurMin,
+            workoutCalories:    trip.workoutCalories,
+          }}
+        />
       </div>
     </main>
   )

@@ -64,15 +64,9 @@ export default async function ActivityPage() {
 
   return (
     <main className="min-h-screen pb-24 px-margin-mobile pt-6 max-w-md mx-auto">
-      <div className="flex items-center justify-between mb-lg">
+      <div className="mb-lg">
         <h1 className="text-headline-lg-mobile text-on-surface">Activity</h1>
-        <Link
-          href="/activity/new"
-          className="h-10 px-md bg-primary-container text-on-primary-container font-bold rounded-lg flex items-center gap-1 text-label-caps active:scale-95 transition-all"
-        >
-          <span className="material-symbols-outlined text-[18px]">add</span>
-          LOG TRIP
-        </Link>
+        <p className="text-label-caps text-secondary mt-0.5">COMMUTE &amp; CARDIO HISTORY</p>
       </div>
 
       {/* Tabs */}
@@ -92,8 +86,15 @@ export default async function ActivityPage() {
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <span className="material-symbols-outlined text-secondary text-5xl">directions_run</span>
           <p className="text-secondary text-body-sm text-center">
-            No trips logged yet — tap Log Trip to record your first gym commute.
+            No trips logged yet — log your commute &amp; cardio inside a workout and it&apos;ll appear here.
           </p>
+          <Link
+            href="/workouts"
+            className="h-10 px-md bg-surface-container-high text-on-surface font-bold rounded-lg flex items-center gap-1 text-label-caps active:scale-95 transition-all"
+          >
+            <span className="material-symbols-outlined text-[18px]">fitness_center</span>
+            GO TO WORKOUTS
+          </Link>
         </div>
       ) : (
         <>

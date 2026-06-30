@@ -8,6 +8,7 @@ import {
   readinessNudges,
 } from '@/lib/readiness'
 import { prisma } from '@/lib/prisma'
+import { getTodaysProteinProgress } from '@/lib/nutrition'
 import ReadinessForm from '@/components/ReadinessForm'
 import EarlyDeloadButton from '@/components/EarlyDeloadButton'
 
@@ -56,9 +57,14 @@ export default async function RecoveryPage() {
   }
   const earlyDeloadFired = readinessTrigger || performanceTrigger
 
-  const recent = await prisma.readiness.findMany({ orderBy: { date: 'desc' }, take: 3 })
+  const [recent, protein] = await Promise.all([
+    prisma.readiness.findMany({ orderBy: { date: 'desc' }, take: 3 }),
+    getTodaysProteinProgress(),
+  ])
   const nudges = readinessNudges(
     recent.map(r => ({ sleepHours: r.sleepHours, soreness: r.soreness, energy: r.energy })),
+    protein.targetG,
+    protein.consumedG,
   )
 
   const todayLabel = today.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
