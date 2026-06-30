@@ -50,6 +50,10 @@ const exerciseData = [
   // ── Calves ────────────────────────────────────────────────────────────
   { name: 'Standing Calf Raise',       muscleGroup: 'calves',     repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
   { name: 'Seated Calf Raise',         muscleGroup: 'calves',     repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  // ── Abs / core (one at the end of each session) ─────────────────────────
+  { name: 'Cable Crunch',              muscleGroup: 'abs',        repRangeLow: 10, repRangeHigh: 15, incrementKg: 2.5 },
+  { name: 'Hanging Leg Raise',         muscleGroup: 'abs',        repRangeLow: 8,  repRangeHigh: 15, incrementKg: 2.5 },
+  { name: 'Cable Woodchop',            muscleGroup: 'abs',        repRangeLow: 12, repRangeHigh: 15, incrementKg: 2.5 },
 ]
 
 const priorityExerciseNames = [
@@ -81,6 +85,7 @@ const templateData = [
       { name: 'Bicep Curl',                sets: 3 },
       { name: 'Tricep Pushdown',           sets: 3 },
       { name: 'Standing Calf Raise',       sets: 3 },
+      { name: 'Cable Crunch',              sets: 3 },
     ],
   },
   {
@@ -91,6 +96,7 @@ const templateData = [
       { name: 'Leg Extension',             sets: 3 },
       { name: 'Leg Curl',                  sets: 3 },
       { name: 'Standing Calf Raise',       sets: 4 },
+      { name: 'Hanging Leg Raise',         sets: 3 },
     ],
   },
   {
@@ -104,6 +110,7 @@ const templateData = [
       { name: 'Hammer Curl',               sets: 3 },
       { name: 'Overhead Tricep Extension', sets: 3 },
       { name: 'Seated Calf Raise',         sets: 3 },
+      { name: 'Cable Woodchop',            sets: 3 },
     ],
   },
   {
@@ -114,6 +121,7 @@ const templateData = [
       { name: 'Lying Leg Curl',            sets: 4 },
       { name: 'Leg Extension',             sets: 2 },
       { name: 'Seated Calf Raise',         sets: 4 },
+      { name: 'Cable Crunch',              sets: 3 },
     ],
   },
   // ── 3-DAY FALLBACK ────────────────────────────────────────────────────
@@ -127,6 +135,7 @@ const templateData = [
       { name: 'Bicep Curl',                sets: 2 },
       { name: 'Tricep Pushdown',           sets: 2 },
       { name: 'Standing Calf Raise',       sets: 3 },
+      { name: 'Hanging Leg Raise',         sets: 3 },
     ],
   },
   {
@@ -140,6 +149,7 @@ const templateData = [
       { name: 'Hammer Curl',               sets: 2 },
       { name: 'Overhead Tricep Extension', sets: 2 },
       { name: 'Seated Calf Raise',         sets: 3 },
+      { name: 'Cable Woodchop',            sets: 3 },
     ],
   },
   {
@@ -153,6 +163,7 @@ const templateData = [
       { name: 'Bicep Curl',                sets: 2 },
       { name: 'Tricep Pushdown',           sets: 2 },
       { name: 'Standing Calf Raise',       sets: 3 },
+      { name: 'Cable Crunch',              sets: 3 },
     ],
   },
 ]
