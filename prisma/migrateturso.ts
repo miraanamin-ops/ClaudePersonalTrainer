@@ -171,6 +171,27 @@ async function main() {
   `)
   console.log('  · off_plan_meals table ensured')
 
+  // -------------------------------------------------------------------------
+  // Activity tracking: gym trips
+  // -------------------------------------------------------------------------
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS gym_trips (
+      id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+      date                 DATETIME NOT NULL,
+      workout_id           INTEGER REFERENCES workouts(id),
+      travel_to_mode       TEXT NOT NULL,
+      travel_to_calories   INTEGER,
+      travel_to_dist_km    REAL,
+      travel_to_dur_min    REAL,
+      travel_from_mode     TEXT NOT NULL,
+      travel_from_calories INTEGER,
+      travel_from_dist_km  REAL,
+      travel_from_dur_min  REAL,
+      workout_calories     INTEGER
+    )
+  `)
+  console.log('  · gym_trips table ensured')
+
   client.close()
   console.log('Done.')
 }

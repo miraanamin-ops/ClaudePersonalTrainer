@@ -143,7 +143,48 @@ From Block 2 onward: full periodisation with no ceiling — volume climbs week-o
 - Deloads: scheduled automatically at the end of each mesocycle, and triggered early (reactive deload) if readiness or performance drops repeatedly.
 - Rest-day guidance, plus protein and sleep nudges.
 
-## 7. Data model (Phase 1 builds the core; later tables added in their phase)
+## 7. Activity tracking (gym commute + cardio)
+
+Manual entry only. Data is read off the Apple Watch and entered by hand; no HealthKit or native iOS integration.
+
+For each gym trip, log:
+- **Date & time** — defaults to now, editable for after-the-fact logging.
+- **Travel to gym** — mode: run / walk / drive / dropped off.
+- **Travel from gym** — mode: run / walk / drive / dropped off (independent of travel-to).
+- **Calories burned** — for run and walk legs.
+- **Distance (km) and time (min)** — for run legs only; pace is derived at display time (min/km, guarded for zero distance).
+- **Gym workout calories** — entered separately.
+
+Rules:
+- A run-one-way / walk-back trip counts the run leg toward distance and pace; the walk leg contributes calories only.
+- Pace is never stored; computed as `durMin / distKm`.
+- Walk legs contribute calories but not distance/time to charts.
+
+Progress view (at `/activity`, reachable via WORKOUTS → ACTIVITY tab):
+- **Run Distance & Pace**: dual Y-axis line chart (distance left; pace right, inverted so faster = higher).
+- **Run Time**: line chart.
+- **Total Calories per session**: bar chart summing commute legs + workout.
+- Charts require ≥ 2 sessions to display.
+- Below charts: reverse-chronological trip list with route display, run stats, and per-leg calorie breakdown.
+
+### gym_trips table
+
+```
+id                   INTEGER PK AUTOINCREMENT
+date                 DATETIME NOT NULL
+workout_id           INTEGER FK → workouts(id)   (optional)
+travel_to_mode       TEXT NOT NULL   -- run | walk | drive | dropped_off
+travel_to_calories   INTEGER
+travel_to_dist_km    REAL
+travel_to_dur_min    REAL
+travel_from_mode     TEXT NOT NULL
+travel_from_calories INTEGER
+travel_from_dist_km  REAL
+travel_from_dur_min  REAL
+workout_calories     INTEGER
+```
+
+## 8. Data model (Phase 1 builds the core; later tables added in their phase)
 
 Tables (libSQL / SQLite):
 - body_metrics: id, date, weight_kg, body_fat_pct, notes
@@ -159,7 +200,7 @@ Tables (libSQL / SQLite):
 - meal_plan: id, date, breakfast_meal_id, dinner_meal_id (lunch is derived = previous day's dinner)
 - pantry (added in Phase 9): id, ingredient_name, quantity, unit
 
-## 8. Tech stack and deployment
+## 9. Tech stack and deployment
 
 Primary use is on my PHONE (at the gym, the supermarket), but I build on my laptop. So it must be deployed and reachable from my phone at all times, without my laptop being on.
 
@@ -171,7 +212,7 @@ Primary use is on my PHONE (at the gym, the supermarket), but I build on my lapt
 - Charts: Recharts.
 - Front end deliberately minimal at first, but MOBILE-FIRST layout since the phone is the primary device. Polish comes later.
 
-## 9. Build phases (one focused session each)
+## 10. Build phases (one focused session each)
 
 - Phase 1: Scaffold + data layer (Next.js, Turso/libSQL via Prisma, schema + seed from this spec). Deploy a skeleton to Vercel to confirm phone access works early.
 - Phase 2: Body tracking (log weight/body fat, trend chart).
@@ -184,7 +225,7 @@ Primary use is on my PHONE (at the gym, the supermarket), but I build on my lapt
 - Phase 9 (later): Fridge/pantry inventory. I enter what I already have, and the shopping list subtracts it so quantities update to only what I still need.
 - Phase 10 (optional): Claude API "coach" layer for ambitious, motivational messaging and smart adjustments.
 
-## 10. Working rules for Claude Code
+## 11. Working rules for Claude Code
 
 - Read this file at the start of every session.
 - Work on ONE phase at a time. Do not jump ahead.

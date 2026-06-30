@@ -32,6 +32,19 @@ export default async function WorkoutsPage() {
         </Link>
       </div>
 
+      {/* Tabs */}
+      <div className="flex mb-lg border-b border-surface-container-highest">
+        <span className="flex-1 text-center pb-sm text-label-caps font-bold text-primary-container border-b-2 border-primary-container -mb-px">
+          WORKOUTS
+        </span>
+        <Link
+          href="/activity"
+          className="flex-1 text-center pb-sm text-label-caps text-secondary border-b-2 border-transparent -mb-px"
+        >
+          ACTIVITY
+        </Link>
+      </div>
+
       {workouts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <span className="material-symbols-outlined text-secondary text-5xl">fitness_center</span>

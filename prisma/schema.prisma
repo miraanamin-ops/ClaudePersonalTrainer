@@ -75,6 +75,7 @@ model Workout {
   template    WorkoutTemplate @relation(fields: [templateId], references: [id])
   mesocycle   Mesocycle?      @relation(fields: [mesocycleId], references: [id])
   workoutSets WorkoutSet[]
+  gymTrips    GymTrip[]
 
   @@map("workouts")
 }
@@ -188,4 +189,22 @@ model NutritionTarget {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("nutrition_targets")
+}
+
+model GymTrip {
+  id                  Int      @id @default(autoincrement())
+  date                DateTime
+  workoutId           Int?     @map("workout_id")
+  travelToMode        String   @map("travel_to_mode")
+  travelToCalories    Int?     @map("travel_to_calories")
+  travelToDistKm      Float?   @map("travel_to_dist_km")
+  travelToDurMin      Float?   @map("travel_to_dur_min")
+  travelFromMode      String   @map("travel_from_mode")
+  travelFromCalories  Int?     @map("travel_from_calories")
+  travelFromDistKm    Float?   @map("travel_from_dist_km")
+  travelFromDurMin    Float?   @map("travel_from_dur_min")
+  workoutCalories     Int?     @map("workout_calories")
+  workout             Workout? @relation(fields: [workoutId], references: [id])
+
+  @@map("gym_trips")
 }
